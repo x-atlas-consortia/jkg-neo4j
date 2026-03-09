@@ -1,0 +1,23 @@
+# JetBrains
+.idea/
+
+# Mac OSX
+.DS_Store
+
+**/*.bak
+\#*\#
+**~
+
+# specific to neo4j import and data directories
+neo4j/import*
+neo4j/data/*
+!neo4j/data/README.txt
+
+# log files in any path
+**/*.log
+
+# config files
+*.cfg
+
+# report files
+*.report
