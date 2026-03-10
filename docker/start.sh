@@ -105,4 +105,8 @@ echo -e "***"
 echo -e "***Just a minute or so more..."
 echo -e "***Wait for the \"Started Server\" message ${NC}"
 # Docker requires your command to keep running in the foreground, so start with the console option. Otherwise, it thinks that your applications stops and shuts down the container.
-$NEO4J/bin/neo4j console | grep -v "org\.eclipse\.jetty" | grep -v "Directories in use" | grep -v "usr/src/app/neo4j"
+$NEO4J/bin/neo4j console \
+  | grep -v "org\.eclipse\.jetty" \
+  | grep -v "Directories in use" \
+  | grep -v "usr/src/app/neo4j"\
+  | grep -v "UseBiasedLocking"

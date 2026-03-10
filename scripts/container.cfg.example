@@ -1,0 +1,29 @@
+# -------------------------
+# JSON Knowledge Graph (JKG)
+# Container configuration parameters for build_container script
+
+# Uncomment variables to change from the default values.
+
+# Name of Docker container
+container_name=jkg-neo4j-local
+
+# Docker tag. If "local", the build_container script will use the local Docker image instead of pulling an image
+# from DockerHub.
+#docker_tag=current-release
+docker_tag=local
+
+# Password for the neo4j user.
+# The password must contain at least 8 characters, of which one must be alphabetic and one numeric.
+neo4j_password=abcd1234
+
+# Ports to which to map the container's neo4j instance UI and Bolt ports.
+# The default ports for neo4j are 7474 (browser) and 7687 (bolt); if there is a local installation of
+# neo4j, changing the port assignments here avoids port conflicts.
+ui_port=4600
+bolt_port=4700
+
+# Whether the neo4j instance is read-write or read-only. Default is read-only.
+read_mode=read-write
+
+# Path to the JKG JSON used to populate the neo4j database
+jkg_json=./json/jkg.json

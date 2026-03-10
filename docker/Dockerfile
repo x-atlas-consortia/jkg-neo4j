@@ -1,7 +1,7 @@
 # Parent image
 FROM redhat/ubi8:8.6
 
-LABEL description="UBKG Neo4j service"
+LABEL description="JKG Neo4j service"
 
 # When trying to run "yum updates" or "yum install", the "system is not registered with an entitlement server" error message is given
 # To fix this issue:
@@ -21,12 +21,12 @@ COPY . .
 # Install OpenJDK 17, Neo4j via a tar file, get apoc jar and put it in place
 RUN yum update -y && \
     yum install -y wget java-17-openjdk && \
-    wget dist.neo4j.org/neo4j-community-5.11.0-unix.tar.gz && \
-    tar -zxvf neo4j-community-5.11.0-unix.tar.gz && \
-    mv neo4j-community-5.11.0 neo4j && \
-    wget https://github.com/neo4j/apoc/releases/download/5.11.0/apoc-5.11.0-core.jar  && \
-    mv apoc-5.11.0-core.jar neo4j/plugins && \
-    rm neo4j-community-5.11.0-unix.tar.gz && \
+    wget dist.neo4j.org/neo4j-community-5.15.0-unix.tar.gz && \
+    tar -zxvf neo4j-community-5.15.0-unix.tar.gz && \
+    mv neo4j-community-5.15.0 neo4j && \
+    wget https://github.com/neo4j/apoc/releases/download/5.15.0/apoc-5.15.0-core.jar  && \
+    mv apoc-5.15.0-core.jar neo4j/plugins && \
+    rm neo4j-community-5.15.0-unix.tar.gz && \
     rm -rf /usr/src/app/neo4j/data/* && \
     yum clean all
 
@@ -36,9 +36,13 @@ WORKDIR /usr/src/app
 RUN echo "Copying configuration files to image..."
 # Copy files from host to image
 COPY start.sh .
-#COPY set_constraints.cypher .
+# The different versions of the neo4j.conf file allow for automated
+# changes to authorization.
 COPY neo4j.conf /usr/src/app/neo4j/conf
 COPY neo4j.conf.noauth /usr/src/app/neo4j/conf
+# The apoc.conf file enables both import from the file system
+# and export to the file system.
+COPY apoc.conf /usr/src/app/neo4j/conf
 
 # Change directory
 WORKDIR /usr/src/app/neo4j/bin
