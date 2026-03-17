@@ -1,0 +1,45 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+"""
+CentralLog: manages custom, centralized Python logging.
+
+Logs will be stored in the subdirectory named 'logging' of the repository root.
+
+Uses a custom logging.ini file, located in the logging directory,
+to configure JSON logging.
+
+"""
+import logging.config
+import os
+
+class CentralLog:
+
+    def __init__(self, log_dir: str, log_file:str):
+
+        """
+        :param log_dir: logging directory
+        :param log_file: logging file
+        """
+
+        self.log_dir = log_dir
+        self.log_file = log_file
+        self.logger = logging.getLogger(__name__)
+
+        # logging.ini to configure custom, centralized Python logging.
+        log_config = os.path.join(log_dir,'logging.ini')
+        logging.config.fileConfig(log_config, disable_existing_loggers=False, defaults={'log_file': log_dir + '/' + log_file})
+
+    def print_and_logger_info(self,message: str) -> None:
+        print(message)
+        self.logger.info(message)
+
+    def print_and_logger_error(self,message: str) -> None:
+        # Red text
+        print(f"\033[31m{message}\033[0m")  #
+        self.logger.error(message)
+
+    def print_and_logger_warning(self,message: str) -> None:
+        # Yellow text
+        print(f"\033[33m{message}\033[0m") #
+        self.logger.warning(message)

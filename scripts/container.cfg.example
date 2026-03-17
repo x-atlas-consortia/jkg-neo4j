@@ -25,5 +25,12 @@ bolt_port=4700
 # Whether the neo4j instance is read-write or read-only. Default is read-only.
 read_mode=read-write
 
+# JKG-JSON IMPORT
+# Logging configuration
+log_dir=python/log
+log_file=import_jkg_json.log
 # Path to the JKG JSON used to populate the neo4j database
-jkg_json=./json/jkg.json
+jkg_json_dir=./json
+jkg_json_file=jkg.json
+# Number of rows per batched JSON file
+jkg_batch_size=1000000

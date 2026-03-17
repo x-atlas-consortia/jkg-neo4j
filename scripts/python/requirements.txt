@@ -5,3 +5,8 @@ neo4j == 5.15.0
 # To read the common config file
 configobj == 5.0.9
 tqdm==4.67.3
+ijson==3.5.0
+
+# Logging
+# python-json-logger is invoked in the logging.ini file in the log directory
+python-json-logger==4.0.0
