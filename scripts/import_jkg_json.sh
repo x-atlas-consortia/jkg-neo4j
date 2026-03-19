@@ -64,6 +64,7 @@ log_file="import_jkg_json.log"
 jkg_json_dir="./json"
 jkg_json_file="jkg.json"
 jkg_batch_size=1000000
+jkg_schema_json="JKG_Schema.json"
 
 
 ##############################
@@ -129,6 +130,13 @@ if [ ! -e "$jkg_json_full" ]
     exit 1;
 fi
 
+jkg_schema_full="$jkg_json_dir/$jkg_schema_json"
+if [ ! -e "$jkg_schema_full" ]
+  then
+    echo "Error: schema file '$jkg_schema_full' not in '$jkg_json_dir."
+    exit 1;
+fi
+
 if [ "$jkg_batch_size" -le 0 ]
   then
     echo "Invalid value for batch size: '$jkg_batch_size'"
@@ -167,7 +175,7 @@ IMPORT="$NEO4J"/import
 # Copy the JKG JSON from the source directory to the import directory. This step is necessary: if you create a container with a
 # bind mount to an non-empty directory, the bind mount will obscure the bound directory's existing content--i.e., it will not
 # recognize it. To work around this, copy files to the bind mount after it is created.
-cp "$jkg_json" "$import_dir"
+cp "$jkg_json_full" "$import_dir"
 
 # Delete the specified JKG database from the external bind mount, if it exists.
 echo "Dropping existing ontology database files from external bind mount."

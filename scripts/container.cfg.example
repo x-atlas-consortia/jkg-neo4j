@@ -34,3 +34,5 @@ jkg_json_dir=./json
 jkg_json_file=jkg.json
 # Number of rows per batched JSON file
 jkg_batch_size=1000000
+# JKG Schema file
+jkg_schema_json=JKG_Schema.json

@@ -1,7 +1,5 @@
 """
-The Neo4App class represents a connection to a UBKG neo4j instance.
-
-The primary consumer is the add_collapsed_properties script.
+The Neo4App class represents a connection to a JKG neo4j instance.
 
 ASSUMPTIONS:
 1. Connect string information is in a config file named container.cfg, located in the

@@ -1,12 +1,20 @@
 #pip==21.3.1
 #setuptools==60.2.0
-#wheel==0.37.1
+wheel==0.37.1
 neo4j == 5.15.0
 # To read the common config file
 configobj == 5.0.9
+# Progress display
 tqdm==4.67.3
+# Streaming json
 ijson==3.5.0
 
 # Logging
 # python-json-logger is invoked in the logging.ini file in the log directory
 python-json-logger==4.0.0
+
+# Validation
+pandas>=2.2.0
+numpy==2.1.0
+jsonschema==4.26.0
+loky==3.5.6

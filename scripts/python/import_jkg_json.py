@@ -10,6 +10,8 @@ import os
 from classes.configfile import ConfigFile
 from classes.jkgbatch import JKGBatch
 from classes.centrallog import CentralLog
+from classes.jkgvalidate import JKGValidate
+from classes.neo4japp import Neo4jApp
 
 def main():
 
@@ -31,16 +33,23 @@ def main():
     jkg_json_file=cfgobj.config.get('jkg_json_file')
     # Obtain the batch size for processing the JKG JSON file.
     jkg_batch_size = cfgobj.config.get('jkg_batch_size')
+    jkg_schema_json = cfgobj.config.get('jkg_schema_json')
 
     # Process the JKG JSON file.
-    jkgbatch = JKGBatch(jkg_json_dir=jkg_json_dir,
-                        jkg_json_file=jkg_json_file,
-                        jkg_batch_size=jkg_batch_size,
-                        clog = clog)
+    #jkgbatch = JKGBatch(jkg_json_dir=jkg_json_dir,
+                        #jkg_json_file=jkg_json_file,
+                        #jkg_batch_size=jkg_batch_size,
+                        #clog = clog)
 
 
-    # Validate the smaller files against the JKG schema.
+    # Validate JKG JSON.
+    jkgvalidate = JKGValidate(jkg_json_dir=jkg_json_dir,
+                              jkg_json_file=jkg_json_file,
+                              jkg_schema_json=jkg_schema_json,
+                              clog = clog)
+
     # Connect to the neo4j instance.
+
     # Create indexes and constraints in the graph database.
     # Import the divided source files into the graph database.
 
