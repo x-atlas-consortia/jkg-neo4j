@@ -35,6 +35,14 @@ def main():
     jkg_batch_size = cfgobj.config.get('jkg_batch_size')
     jkg_schema_json = cfgobj.config.get('jkg_schema_json')
 
+    jkg_validate = cfgobj.config.get('jkg_validate_schema')
+    if jkg_validate=='true':
+        # Validate JKG JSON.
+        jkgvalidate = JKGValidate(jkg_json_dir=jkg_json_dir,
+                                  jkg_json_file=jkg_json_file,
+                                  jkg_schema_json=jkg_schema_json,
+                                  clog=clog)
+
     # Process the JKG JSON file.
     #jkgbatch = JKGBatch(jkg_json_dir=jkg_json_dir,
                         #jkg_json_file=jkg_json_file,
@@ -42,11 +50,7 @@ def main():
                         #clog = clog)
 
 
-    # Validate JKG JSON.
-    jkgvalidate = JKGValidate(jkg_json_dir=jkg_json_dir,
-                              jkg_json_file=jkg_json_file,
-                              jkg_schema_json=jkg_schema_json,
-                              clog = clog)
+
 
     # Connect to the neo4j instance.
 

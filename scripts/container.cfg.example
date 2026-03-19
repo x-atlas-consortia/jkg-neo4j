@@ -36,3 +36,5 @@ jkg_json_file=jkg.json
 jkg_batch_size=1000000
 # JKG Schema file
 jkg_schema_json=JKG_Schema.json
+# Whether to validate the JSON against the JKG schema
+jkg_validate_schema=true
