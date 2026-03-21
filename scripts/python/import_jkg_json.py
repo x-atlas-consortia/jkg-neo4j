@@ -6,6 +6,7 @@ in a JSON file that conforms to the JSON Knowledge Graph (JKG) format.
 """
 import sys
 import os
+import contextlib
 
 from classes.configfile import ConfigFile
 from classes.jkgbatch import JKGBatch
@@ -37,10 +38,14 @@ def main():
 
     jkg_validate = cfgobj.config.get('jkg_validate_schema')
     if jkg_validate=='true':
+        jkg_validate_chunk = cfgobj.config.get('jkg_validate_chunk')
+        vlog_file = cfgobj.config.get('validation_error_log_file')
+        vlog_path = os.path.join(log_dir, vlog_file)
         # Validate JKG JSON.
         jkgvalidate = JKGValidate(jkg_json_dir=jkg_json_dir,
                                   jkg_json_file=jkg_json_file,
                                   jkg_schema_json=jkg_schema_json,
+                                  jkg_validate_chunk=jkg_validate_chunk,
                                   clog=clog)
 
     # Process the JKG JSON file.

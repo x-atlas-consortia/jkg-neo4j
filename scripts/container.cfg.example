@@ -29,6 +29,7 @@ read_mode=read-write
 # Logging configuration
 log_dir=python/log
 log_file=import_jkg_json.log
+validation_error_log_file=validation_errors.log
 # Path to the JKG JSON used to populate the neo4j database
 jkg_json_dir=./json
 jkg_json_file=jkg.json
@@ -38,3 +39,5 @@ jkg_batch_size=1000000
 jkg_schema_json=JKG_Schema.json
 # Whether to validate the JSON against the JKG schema
 jkg_validate_schema=true
+# Chunk size for subschema validation
+jkg_validate_chunk=100
