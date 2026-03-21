@@ -47,6 +47,7 @@ class JKGValidate:
         self.jkg_validate_chunk = int(jkg_validate_chunk)
         self.clog = clog
 
+
         # Parse JKG files.
         self.clog.print_and_logger_warning('Historical estimates are for the UMLS JKG.JSON (4.3 GB).')
         self._parse_jkg_files()
@@ -268,13 +269,12 @@ class JKGValidate:
                           noerrmsg='All Rel end id are present in node id.',
                           filename='missing_rel_end.csv')
 
-    def _format_validation_error(self, error, items: list, s: int) -> str:
+    def _format_validation_error(self, error, items: list) -> str:
 
         """
         Formats a jsonschema ValidationError into a human-readable message.
         :param error: a jsonschema ValidationError
         :param items: the slice of items being validated
-        :param s: start offset of the slice in the full list
         :return: formatted error message string
         """
         path = list(error.absolute_path)
@@ -290,56 +290,47 @@ class JKGValidate:
 
         # Validate JKG against top level of JKG_Schema.
         jtimer = JkgTimer(display_msg=f"Validating against the top-level JKG schema")
-
-        v = Draft202012Validator(self.JKG_Schema)
-        errors = sorted(v.iter_errors(self.JKG), key=lambda e: e.path)
-
-        # Validation errors not printed to terminal.
-        for error in errors:
-            msg = self._format_validation_error(error=error, items=self.JKG, s=0)
-            self.clog.logger.error(msg)
-
+        setret = self._validate_items_against_schema(items=self.JKG, schema=self.JKG_Schema)
         jtimer.stop()
+        return setret
 
-    def _validate_items_against_subschema(self, items: list, s:int, f:int, subschema: dict) -> set:
+    def _validate_items_against_schema(self, items: list, schema: dict) -> set:
         """
         Validates a set of nodes from the JKG JSON against the specified
         schema.
         :param items: a slice of a list of JKG JSON nodes
-        :param s: start node identifier
-        :param f: finish node identifier
-        :param subschema: part of a JSON schema
+        :param schema: part or all of a JSON schema
         :return: set of unique error messages per validation
         """
 
-        v = Draft202012Validator(subschema)
+        v = Draft202012Validator(schema)
         errors = sorted(v.iter_errors(items), key=lambda e: e.path)
-        return {self._format_validation_error(error=error, items=items, s=s) for error in errors}
+        return {self._format_validation_error(error=error, items=items) for error in errors}
 
-    def _validate_nodes_against_subschema(self, subschema: dict, nodetype: str):
+    def _validate_array_against_subschema(self, subschema: dict, arraykey: str):
 
         """
-        Validates a set of nodes from the JKG JSON against the specified schema.
-        :param nodetype: type of node - e.g., "nodes", "rels"
+        Validates an array rom the JKG JSON against the specified schema.
+        :param arraykey: type of node - e.g., "nodes", "rels"
         :param subschema: part of a JSON schema
 
         """
 
-        max_index = len(self.JKG[nodetype]) - 1
+        max_index = len(self.JKG[arraykey]) - 1
         executor = get_reusable_executor(max_workers=10, timeout=3)
 
-        self.clog.print_and_logger_info(f"In each {self.jkg_validate_chunk} {nodetype} up to one invalid entry is flagged.")
+        self.clog.print_and_logger_info(f"In each {self.jkg_validate_chunk} {arraykey} up to one invalid entry is flagged.")
 
+        num_chunks = (max_index + self.jkg_validate_chunk - 1) // self.jkg_validate_chunk
         futures = []
         s = 0
-        while s < max_index:
-            f = min(s + self.jkg_validate_chunk, max_index)
-            self.clog.print_and_logger_info(f"Validating {nodetype} {s} to {f}")
-            items = self.JKG[nodetype][s:f]
-            # Collect errors from this validation chunk.
-            futures.append(executor.submit(self._validate_items_against_subschema, items, s, f, subschema))
-            # executor.submit(self._validate_items_against_subschema, items, s, f, subschema)
-            s = f
+        with tqdm(total=num_chunks, desc=f"Submitting {arraykey} validation chunks") as pbar:
+            while s < max_index:
+                f = min(s + self.jkg_validate_chunk, max_index)
+                items = self.JKG[arraykey][s:f]
+                futures.append(executor.submit(self._validate_items_against_schema, items, subschema))
+                s = f
+                pbar.update(1)
 
         # Collect any validation errors and deduplicate across all chunks
         seen = set()
@@ -364,8 +355,8 @@ class JKGValidate:
         nodes_schema = self.JKG_Schema['properties'].pop('nodes')
         rels_schema = self.JKG_Schema['properties'].pop('rels')
 
-        self._validate_nodes_against_subschema(nodetype='nodes', subschema=nodes_schema)
-        self._validate_nodes_against_subschema(nodetype='rels', subschema=rels_schema)
+        self._validate_array_against_subschema(arraykey='nodes', subschema=nodes_schema)
+        self._validate_array_against_subschema(arraykey='rels', subschema=rels_schema)
 
 
 
