@@ -63,8 +63,6 @@ log_dir="./python/log"
 log_file="import_jkg_json.log"
 jkg_json_dir="./json"
 jkg_json_file="jkg.json"
-jkg_batch_size=1000000
-jkg_schema_json="JKG_Schema.json"
 
 
 ##############################
@@ -129,22 +127,6 @@ if [ ! -e "$jkg_json_full" ]
     echo "Error: source file '$jkg_json_file' not in '$jkg_json_dir."
     exit 1;
 fi
-
-jkg_schema_full="$jkg_json_dir/$jkg_schema_json"
-if [ ! -e "$jkg_schema_full" ]
-  then
-    echo "Error: schema file '$jkg_schema_full' not in '$jkg_json_dir."
-    exit 1;
-fi
-
-if [ "$jkg_batch_size" -le 0 ]
-  then
-    echo "Invalid value for batch size: '$jkg_batch_size'"
-    echo 'Either accept the default (1000000) or specify jkg_batch_size in the config file.'
-    exit 1;
-fi
-
-
 
 
 # max Java heap memory

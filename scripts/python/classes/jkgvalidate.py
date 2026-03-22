@@ -114,7 +114,6 @@ class JKGValidate:
     def _load_nodes_rels_dataframe(self):
 
         self.clog.print_and_logger_info("Loading JKG JSON into dataframes.")
-        # Validate JKG against top level of JKG_Schema.
         self.clog.print_and_logger_warning("The historical time to load rels is under 2 minutes.")
         jtimer = JkgTimer(display_msg=f"Loading rels")
         rels = pd.DataFrame(self.JKG['rels'])
@@ -303,39 +302,49 @@ class JKGValidate:
         :return: set of unique error messages per validation
         """
 
+        # Use a validator class in order to obtain details on validation errors.
         v = Draft202012Validator(schema)
         errors = sorted(v.iter_errors(items), key=lambda e: e.path)
         return {self._format_validation_error(error=error, items=items) for error in errors}
 
-    def _validate_array_against_subschema(self, subschema: dict, arraykey: str):
+    def _validate_array_against_subschema(self, arraykey: str):
 
         """
-        Validates an array rom the JKG JSON against the specified schema.
+        Validates an array from the JKG JSON against
+        the associated subschema.
+        Employs parallel processing.
         :param arraykey: type of node - e.g., "nodes", "rels"
-        :param subschema: part of a JSON schema
 
         """
 
+        # Set up chunking parameters.
+        self.clog.print_and_logger_info(
+            f"In each {self.jkg_validate_chunk} {arraykey} up to one invalid entry is flagged.")
         max_index = len(self.JKG[arraykey]) - 1
-        executor = get_reusable_executor(max_workers=10, timeout=3)
-
-        self.clog.print_and_logger_info(f"In each {self.jkg_validate_chunk} {arraykey} up to one invalid entry is flagged.")
-
         num_chunks = (max_index + self.jkg_validate_chunk - 1) // self.jkg_validate_chunk
-        futures = []
+
         s = 0
+
+        # Set up parallel processing.
+        executor = get_reusable_executor(max_workers=10, timeout=3)
+        validations = [] # returns from parallel validation processes.
+
         with tqdm(total=num_chunks, desc=f"Submitting {arraykey} validation chunks") as pbar:
+
             while s < max_index:
                 f = min(s + self.jkg_validate_chunk, max_index)
+                # Slice of nodes from array
                 items = self.JKG[arraykey][s:f]
-                futures.append(executor.submit(self._validate_items_against_schema, items, subschema))
+                # Associated part of the schema (nodes or rels)
+                subschema = self.JKG_Schema['properties'][arraykey]
+                validations.append(executor.submit(self._validate_items_against_schema, items, subschema))
                 s = f
                 pbar.update(1)
 
-        # Collect any validation errors and deduplicate across all chunks
+        # Collect validation errors and deduplicate across all chunks
         seen = set()
-        for future in futures:
-            seen.update(future.result())
+        for v in validations:
+            seen.update(v.result())
 
         #Validation errors written to log, but not printed to terminal.
         for msg in seen:
@@ -349,14 +358,13 @@ class JKGValidate:
         """
         self.clog.print_and_logger_info("Validating JKG JSON file against the JKG schema.")
 
+        # Validate against the top level schema.
+        # This will take a very long time against a large JSON.
         #self._validate_against_top_level()
 
-        # Split JKG schema into nodes and rels subschemata.
-        nodes_schema = self.JKG_Schema['properties'].pop('nodes')
-        rels_schema = self.JKG_Schema['properties'].pop('rels')
-
-        self._validate_array_against_subschema(arraykey='nodes', subschema=nodes_schema)
-        self._validate_array_against_subschema(arraykey='rels', subschema=rels_schema)
+        # Iteratively validate chunks of the JSON.
+        self._validate_array_against_subschema(arraykey='nodes')
+        self._validate_array_against_subschema(arraykey='rels')
 
 
 
