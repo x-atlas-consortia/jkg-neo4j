@@ -19,6 +19,9 @@ import jsonschema as jsonschema
 from jsonschema import Draft202012Validator
 from loky import get_reusable_executor
 
+# Common configuration
+from .configfile import ConfigFile
+
 # Centralized application logging
 from .centrallog import CentralLog
 
@@ -30,36 +33,61 @@ from .progressreader import ProgressReader
 
 class JKGValidate:
 
-    def __init__(self, jkg_json_dir: str, jkg_json_file: str,
-                 jkg_schema_json: str, jkg_validate_chunk: str,
-                 clog: CentralLog):
+    def __init__(self, cfg: ConfigFile, clog: CentralLog):
         """
-        :param jkg_json_dir: path to the JKG JSON file
-        :param jkg_json_file: filename of the JKG JSON file
-        :param jkg_schema_json: filename of the JKG schema JSON file
-        :param jkg_validate_chunk: chunk size for subscheme validation
+        :param cfg: the common config file object
         :param clog: the central logging object
         """
 
-        self.jkg_json_dir = jkg_json_dir
-        self.jkg_json_file = jkg_json_file
-        self.jkg_json_schema = jkg_schema_json
-        self.jkg_validate_chunk = int(jkg_validate_chunk)
+        # Application log
         self.clog = clog
+
+        # Get the schema validation type.
+        # Evaluated values are:
+        # 1. entire
+        # 2. sample
+        self.schema_validation_type = cfg.get('schema_validation')
+
+        # Get the validation partition (chunk) size, relevant for sample validation.
+        self.jkg_validate_chunk = int(cfg.get('jkg_validate_chunk'))
+        if self.schema_validation_type == 'sample' and self.jkg_validate_chunk < 10:
+            self.clog.print_and_logger_warning(f"A small chunk size of {self.jkg_validate_chunk} is likely to result "
+                                               f"in timeout errors or other issues from parallel processing. "
+                                               f"The recommended minimum chunk size is 100.")
+
+        # Get the flags for structural validation
+        self.check_uniqueness = cfg.get('check_uniqueness')=='true'
+        self.check_referential_integrity = cfg.get('check_referential_integrity')=='true'
+
+        # Get the path to the JKG JSON source file and schema.
+        self.jkg_json_dir = cfg.get('jkg_json_dir')
+        self.jkg_json_file = cfg.get('jkg_json_file')
+        self.jkg_schema_json = cfg.get('jkg_schema_json')
+
+        # Get the file of the schema validation.
+        self.schema_validation_error_file = cfg.get('schema_validation_error_file')
+        self.schema_validation_error_path = os.path.join(self.jkg_json_dir, self.schema_validation_error_file)
+
+        # Delete previous instances of the schema validation error CSV.
+        with contextlib.suppress(FileNotFoundError):
+            os.remove(self.schema_validation_error_path)
 
 
         # Parse JKG files.
-        self.clog.print_and_logger_warning('Historical estimates are for the UMLS JKG.JSON (4.3 GB).')
+        self.clog.print_and_logger_warning('Historical time estimates are based on the UMLS JKG.JSON (4+ GB).')
         self._parse_jkg_files()
 
-        # Load nodes and rels arrays from JKG JSON into Pandas.
-        self._load_nodes_rels_dataframe()
-        # Validate node uniqueness.
-        self._validate_nodes_for_uniqueness()
-        # Validate referential integrity.
-        self._validate_referential_integrity()
+        if self.check_uniqueness | self.check_referential_integrity:
+            # Load nodes and rels arrays from JKG JSON into Pandas.
+            self._load_nodes_rels_dataframe()
+        if self.check_uniqueness:
+            # Validate node uniqueness.
+            self._validate_nodes_for_uniqueness()
+        if self.check_referential_integrity:
+            # Validate referential integrity.
+            self._validate_referential_integrity()
 
-        # Iteratively validate JSON against schema.
+        # Validate JSON against schema.
         self._validate_json_against_schema()
 
     def _parse_jkg_files(self):
@@ -68,9 +96,9 @@ class JKGValidate:
         Parse JKG JSON file and JKG schema file.
         """
 
-        self.clog.print_and_logger_warning("The historical time to parse the JKG.JSON is under 6 minutes.")
+        self.clog.print_and_logger_warning("Historical time to parse JKG.JSON: < 6 minutes.")
         self.JKG = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_json_file)
-        self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_json_schema)
+        self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
 
     def _load_json(self, dir: str, filename: str) -> dict | list:
         """
@@ -114,11 +142,11 @@ class JKGValidate:
     def _load_nodes_rels_dataframe(self):
 
         self.clog.print_and_logger_info("Loading JKG JSON into dataframes.")
-        self.clog.print_and_logger_warning("The historical time to load rels is under 2 minutes.")
+        self.clog.print_and_logger_warning("Historical time to load rels: < 2 minutes.")
         jtimer = JkgTimer(display_msg=f"Loading rels")
         rels = pd.DataFrame(self.JKG['rels'])
         jtimer.stop()
-        self.clog.print_and_logger_warning("The historical time to load nodes is under 30 seconds.")
+        self.clog.print_and_logger_warning("Historical time to load nodes: < 30 seconds.")
         jtimer = JkgTimer(display_msg=f"Loading nodes")
         nodes = pd.DataFrame(self.JKG['nodes'])
         jtimer.stop()
@@ -126,17 +154,17 @@ class JKGValidate:
         #df = pd.json_normalize(rels)
         # Normalize the JSON arrays to flat tables.
 
-        self.clog.print_and_logger_warning("The historical time to normalize rels start is under 2 minutes.")
+        self.clog.print_and_logger_warning("Historical time to normalize rels start: < 2 minutes.")
         jtimer = JkgTimer(display_msg=f"Normalizing rels start")
         self.starts = pd.json_normalize(rels.start)
         jtimer.stop()
 
-        self.clog.print_and_logger_warning("The historical time to normalize rels end is under 2 minutes.")
+        self.clog.print_and_logger_warning("Historical time to normalize rels end: < 2 minutes.")
         jtimer = JkgTimer(display_msg=f"Normalizing rels end")
         self.ends = pd.json_normalize(rels.end)
         jtimer.stop()
 
-        self.clog.print_and_logger_warning("The historical time to normalize rels properties is under 2 minutes.")
+        self.clog.print_and_logger_warning("Historical time to normalize rels properties: < 2 minutes.")
         jtimer = JkgTimer(display_msg=f"Normalizing rels properties")
         df = pd.json_normalize(rels.properties)
         jtimer.stop()
@@ -144,7 +172,7 @@ class JKGValidate:
         df = pd.concat([rels.label.reset_index(drop=True), df.reset_index(drop=True)], axis=1)
         self.rels = df
 
-        self.clog.print_and_logger_warning("The historical time to normalize nodes properties is under 1 minute.")
+        self.clog.print_and_logger_warning("Historical time to normalize nodes properties: < 1 minute.")
         jtimer = JkgTimer(display_msg=f"Normalizing nodes properties")
         df = pd.json_normalize(nodes.properties)
         jtimer.stop()
@@ -272,83 +300,131 @@ class JKGValidate:
 
         """
         Formats a jsonschema ValidationError into a human-readable message.
-        :param error: a jsonschema ValidationError
+        :param error: a jsonschema ValidationError (a deque)
         :param items: the slice of items being validated
-        :return: formatted error message string
+        :return: tab-delimited error message
         """
         path = list(error.absolute_path)
-        msg = f'VALIDATION ERROR: {error.message}'
+        msg = error.message
 
+        item = ''
         if path and isinstance(path[0], int):
-            offending_item = items[path[0]]
-            msg = f'{msg} FOR ITEM: {offending_item}'
+            item = items[path[0]]
 
-        return msg
+        return f'{msg}\t{item}'
 
-    def _validate_against_top_level(self):
+    def _write_validation_errors(self, validation_errors: set, mode:str='w'):
+        """
+        Writes formatted validation errors to a csv file.
+        :param validation_errors: set of validation errors
 
-        # Validate JKG against top level of JKG_Schema.
-        jtimer = JkgTimer(display_msg=f"Validating against the top-level JKG schema")
-        setret = self._validate_items_against_schema(items=self.JKG, schema=self.JKG_Schema)
+        """
+
+        dferr = pd.DataFrame(list(validation_errors))
+        # Each error string is tab-delimited.
+        # Split error message from item.
+        dferr = dferr[0].str.split('\t', expand=True)
+        dferr.columns = ['error', 'item']
+
+        dferr = dferr.sort_values(by=['item','error'], ascending=True)
+
+        header = mode=='w'
+
+        dferr.to_csv(self.schema_validation_error_path, index=False, sep='\t', mode=mode, header=header)
+
+    def _validate_entire(self):
+
+        # Validate entire JKG JSON against the JKG_Schema.
+        jtimer = JkgTimer(display_msg=f"Validation of entire JKG JSON against entire JKG schema")
+        validation_errors = self._validate_items_against_schema(items=self.JKG, schema=self.JKG_Schema)
         jtimer.stop()
-        return setret
+        self._write_validation_errors(validation_errors=validation_errors)
 
     def _validate_items_against_schema(self, items: list, schema: dict) -> set:
         """
         Validates a set of nodes from the JKG JSON against the specified
         schema.
-        :param items: a slice of a list of JKG JSON nodes
+        :param items: list of JKG JSON nodes, up to the entire array in JKG JSON.
         :param schema: part or all of a JSON schema
-        :return: set of unique error messages per validation
+
+        :return: Python set of unique error messages per validation
         """
 
         # Use a validator class in order to obtain details on validation errors.
         v = Draft202012Validator(schema)
+
         errors = sorted(v.iter_errors(items), key=lambda e: e.path)
         return {self._format_validation_error(error=error, items=items) for error in errors}
 
-    def _validate_array_against_subschema(self, arraykey: str):
+    def _validate_by_sampling(self, arraykey: str):
 
         """
-        Validates an array from the JKG JSON against
+        Validates an array (nodes or rels) from the JKG JSON against
         the associated subschema.
-        Employs parallel processing.
+
+        Employs:
+        1. parallel processing
+        2. sampling via partition (chunking)
+
         :param arraykey: type of node - e.g., "nodes", "rels"
 
         """
 
         # Set up chunking parameters.
         self.clog.print_and_logger_info(
-            f"In each {self.jkg_validate_chunk} {arraykey} up to one invalid entry is flagged.")
-        max_index = len(self.JKG[arraykey]) - 1
-        num_chunks = (max_index + self.jkg_validate_chunk - 1) // self.jkg_validate_chunk
+            f"Validation by sampling partition size (chunk) = {self.jkg_validate_chunk}.")
+        #self.clog.print_and_logger_info(f"One invalid {arraykey} is identified per sample.")
 
+        # Initialize lower bound of chunking
         s = 0
 
-        # Set up parallel processing.
-        executor = get_reusable_executor(max_workers=10, timeout=3)
-        validations = [] # returns from parallel validation processes.
+        # while loop control
+        max_index = len(self.JKG[arraykey]) - 1
 
-        with tqdm(total=num_chunks, desc=f"Submitting {arraykey} validation chunks") as pbar:
+        # for tqdm pbar
+        num_chunks = (max_index + self.jkg_validate_chunk - 1) // self.jkg_validate_chunk
+
+        # Set up parallel processing:
+        # Loky executor and parallel worker processes
+        executor = get_reusable_executor(max_workers=10, timeout=3)
+
+        # Returns from parallel validation processes.
+        # Loky assigns these a type of "future".
+        # Futures are like JavaScript promises.
+        validation_futures = []
+
+        with tqdm(total=num_chunks, desc=f"Validating {arraykey} chunk") as pbar:
 
             while s < max_index:
+
+                # Set upper bound of chunk.
                 f = min(s + self.jkg_validate_chunk, max_index)
-                # Slice of nodes from array
+
+                # Chunk = slice of nodes from array
                 items = self.JKG[arraykey][s:f]
-                # Associated part of the schema (nodes or rels)
+
+                # Associated subschema (nodes or rels)
                 subschema = self.JKG_Schema['properties'][arraykey]
-                validations.append(executor.submit(self._validate_items_against_schema, items, subschema))
+
+                # Validate the chunk against the subschema.
+                validation_futures.append(executor.submit(self._validate_items_against_schema, items, subschema))
+
+                # Advance chunk.
                 s = f
                 pbar.update(1)
 
-        # Collect validation errors and deduplicate across all chunks
-        seen = set()
-        for v in validations:
-            seen.update(v.result())
+        # Collect unique validation errors and deduplicate across all parallel processes.
+        sample_validation_errors = set()
+        for v in validation_futures:
+            sample_validation_errors.update(v.result())
 
-        #Validation errors written to log, but not printed to terminal.
-        for msg in seen:
-            self.clog.logger.error(msg)
+
+        # Write validation errors to file.
+        if arraykey == 'rels':
+            mode = 'a'
+        else:
+            mode = 'w'
+        self._write_validation_errors(validation_errors=sample_validation_errors, mode=mode)
 
     def _validate_json_against_schema(self):
 
@@ -358,13 +434,16 @@ class JKGValidate:
         """
         self.clog.print_and_logger_info("Validating JKG JSON file against the JKG schema.")
 
-        # Validate against the top level schema.
-        # This will take a very long time against a large JSON.
-        #self._validate_against_top_level()
+        if self.schema_validation_type == 'sample':
+            # Validate the JSON via partition (chunks) by schema domain.
+            self._validate_by_sampling(arraykey='nodes')
+            self._validate_by_sampling(arraykey='rels')
+        else:
+            # Validate against the top level schema.
+            # This will both take a very long time against a large JSON.
+            self._validate_entire()
 
-        # Iteratively validate chunks of the JSON.
-        self._validate_array_against_subschema(arraykey='nodes')
-        self._validate_array_against_subschema(arraykey='rels')
+
 
 
 
