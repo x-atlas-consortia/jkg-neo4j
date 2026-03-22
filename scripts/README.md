@@ -3,6 +3,9 @@
 
 For an explanation of tool patterns, consult the main README.md.
 
+All tools work with a common configuation file named **container.cfg**. 
+The file **container.cfg.example** in this repo serves as a template for **container.cfg**.
+
 # validate_jkg_json
 
 ## Purpose
@@ -48,4 +51,39 @@ A JKG JSON file
 
 ## Assumption
 The JKG JSON source has been validated against the JKG Schema.
+
+# build_container
+## Purpose
+Builds a Docker container that hosts a neo4j instance. The script can
+build a container either with an external volume mount or without. 
+
+In the workflow to build a neo4j distribution, **build_container** executes numerous times:
+* initially to build an empty "primer" neo4j instance without an external volume
+* after export of the primer neo4j database to an external volume
+* after import of JKG source
+* to build a container from a distribution
+
+
+## Components
+* **build_container.sh**: Bash script
+
+# export_bind_mount
+## Purpose
+Exports the database of the containerized neo4j instance to an external volume.
+## Component
+* **export_bind_mounth.sh**: Bash script
+
+# shutdown_neo4j
+## Purpose
+Shuts down the containerized neo4j instance gracefully within the Docker container. 
+Controlled, explicit shutdown allows the neo4j instance to clean up and close files and prevents 
+"code 137" process errors in Docker.
+## Component
+* **shutdown_neo4j.sh**: Bash script
+
+# build_distribution_zip
+## Purpose
+Builds a Zip archive that contains the minimal set of files necessary to start a local Docker container.
+## Component
+* **build_distribution_zip.sh*: Bash script
 

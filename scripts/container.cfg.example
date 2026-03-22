@@ -36,7 +36,7 @@ jkg_json_file=jkg.json
 # Number of rows per batched JSON file
 jkg_batch_size=1000000
 # JKG Schema file
-jkg_schema_json=JKG_Schema.json
+jkg_schema_json=./json/JKG_Schema.json
 # Whether to validate the JSON against the JKG schema
 jkg_validate_schema=true
 # Chunk size for subschema validation
