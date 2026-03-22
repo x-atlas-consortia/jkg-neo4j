@@ -184,8 +184,8 @@ class JKGValidate:
 
         """
         Writes missing or duplicate items to a CSV file.
-        :param missing_values: DataFrame of missing information.
-        :param noerrmsg: message to display in log.
+        :param issue_frame: DataFrame of issues.
+        :param noerrmsg: message to display in log in case of no issues
         :param filename: output file
         """
 

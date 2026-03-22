@@ -52,8 +52,19 @@ Input file names and locations are specified in the common configuration file.
     * error message
   * When validation by sampling is performed, errors are returned in random order, so errors are sorted by item.
 
-* **missing_*_.csv** - CSVs of missing elements
-* **duplicate_*_.csv** - CSVs of duplicate elements
+* **missing_*_.csv** - CSVs of missing elements, including:
+  * SABs not in the sources array
+  * SABs in the properties of elements of the rels array but not in the sources array
+  * concept labels not in node_labels
+  * relationship labels not in rel_labels
+  * start or end ids in rels without corresponding nodes
+  
+* **duplicate_*_.csv** - CSVs of duplicate elements, including:
+  * duplicate node ids in the nodes array
+  * duplicate SABs in the sources array
+  * duplicate labels in the node_labels array
+  * duplicate labels in the rel_labels array
+
 ### file rotation
 * **validate_jkg_json.py** will append to **validate_jkg_json.log**. The developer will need to "rotate" the log manually by deleting it.
 * **validate_jkg_json.py** will delete prior validation CSV files as part of execution.
