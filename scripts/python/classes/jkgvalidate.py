@@ -199,6 +199,7 @@ class JKGValidate:
 
             chunk_size = 1000
             chunks = [issue_frame[i:i + chunk_size] for i in range(0, len(issue_frame), chunk_size)]
+            chunks.columns = ['id']
 
             for i, chunk in enumerate(tqdm(chunks, desc="Writing issues")):
                 chunk.to_csv(issuefile, mode='w', index=False, header=(i == 0))
@@ -315,10 +316,13 @@ class JKGValidate:
 
     def _write_validation_errors(self, validation_errors: set, mode:str='w'):
         """
-        Writes formatted validation errors to a csv file.
+        Writes formatted validation errors to a tab-separated variables file.
         :param validation_errors: set of validation errors
 
         """
+
+        if not validation_errors:
+            return
 
         dferr = pd.DataFrame(list(validation_errors))
         # Each error string is tab-delimited.
@@ -328,7 +332,15 @@ class JKGValidate:
 
         dferr = dferr.sort_values(by=['item','error'], ascending=True)
 
-        header = mode=='w'
+        if os.path.exists(self.schema_validation_error_path):
+            # Because the file is deleted before each validation run,
+            # the presence of the file means that it is for the current run.
+            mode = 'a'
+
+        else:
+            mode = 'w'
+
+        header = mode == 'w'
 
         dferr.to_csv(self.schema_validation_error_path, index=False, sep='\t', mode=mode, header=header)
 
