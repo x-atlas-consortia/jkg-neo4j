@@ -37,36 +37,51 @@ The architecture supports both building a turnkey distribution from source and i
 distribution locally.
 
 # Tool patterns
-## Separation of concerns, common configuration
+## Separation of concerns
 
 * Deployment tasks are separated where possible. The current tasks include:
-  * validation of the source JSON
+  * splitting of source JSON into a set of smaller "batch" files
+  * validation of source JSON
+    * against the JKG Schema
+    * for uniqueness
+    * for referential integrity
   * import of the source JSON into the neo4j instance
   * build of the Docker container
   * build of the distribution Zip
-* All tools rely on a common framework configuration file named **container.cfg**. The template for the file is named **container.cfg.example**.
 
 ## Components
-* Each tool comprises two scripts:
-  * A [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) script that:
+
+## Script components
+* Each tool comprises two types of scripts:
+  * a [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) script that:
     * verifies configuration specific to the tool
-    * when necessary, creates a Python virtual environment
-    * invokes a Python script
-  * A Python script, usually with the same filename as its Bash script, but different file extension.
+    * when necessary, 
+      * creates a Python virtual environment 
+      * invokes the associated Python script
+  * a Python script. The Python script usually has the same filename as its Bash script, but different file extension (**.py** instead of **.sh**)
   
+### Shared components
+* All tools rely on a common framework configuration file named **container.cfg**. The template for the file is named **container.cfg.example**.
+* All tools with Python components share:
+  * a **requirements.txt** file of Python dependencies
+  * a Bash script (**run_python_venv.sh**) that sets up a Python virtual environment for the tool
+
 ## Python script functionality
 Python scripts:
   * employ reusable, common classes where possible
-  * use a common logging method
-  * read the common configuration file
+  * use a common logging method (controlled by a class in **centrallog.py**). Each script will write to a log named after the script--e.g., **batch_jkg_json.log**.
+  * read the common configuration file (managed by the class in **configfile.py**)
   * display two types of real-time progress monitors (using [tqdm](https://tqdm.github.io/)):
     * progress bars for loop-based processes, including file reads
-    * timers (spinners) for long-running black box processes
+    * timers (spinners) for long-running black box processes (via the class in **jkg_timer.py**)
+  * when necessary, connect to a neo4j instance (via the class in **neo4japp.py**)
+
 ## File locations
 * Bash scripts are in the _scripts_ directory.
 * Python scripts are in the _scripts/python_ path.
 * Common Python classes are in the _scripts/python/classes_ path.
-* With respect to relative file locations, tools assume that they are in a local application directory that contains a copy of the entire _scripts_ directory. 
+
+With respect to relative file locations, tools assume that they are in a local application directory that contains a copy of the entire _scripts_ directory.
 
 # Build Workflow (Work in Progress)
 ![img.png](img.png)

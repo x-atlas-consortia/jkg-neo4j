@@ -1,16 +1,19 @@
 #!/bin/bash
 # -------------------------
 # JSON Knowledge Graph (JKG)
-# JKG JSON validation script:
-# 1. Reads a common configuration file of properties of a Docker container hosting an instance of neo4j with an external bind mount.
-# 2. Validates a JSON file in JSON Knowledge Graph (JKG) format, using [jsonschema](https://python-jsonschema.readthedocs.io/en/latest/)
-# 3. Logs validation errors to a CSV file.
+# Database batch distribution script:
+# 1. Reads a configuration file of properties of a Docker container hosting an instance of neo4j with an external bind mount.
+# 2. Reads a JSON file that complies with JKG format
+# 3. Divides the JKG JSON file into sets of smaller JSON files. Each file contains
+#    an array of objects that are of one of the following types:
+#    a. nodes
+#    b. rels (relationships between concepts)
+#    c. coderels (relationships between concepts and codes)
+#
 
 # Assumptions:
-# 1. The validation script is part of a suite of tools supporting a Docker deployment of a neo4j host of a JKG instance.
-# 2. The script uses the jkg-neo common configuration file (container.cfg).
-# 3. There is a folder, specified by configuration, that contains a JSON file in JSON Knowledge Graph format.
-#    The contents of this folder will be copied into the import bind mount.
+# 1. There is a folder, specified by configuration, that contains a JSON file in JSON Knowledge Graph format.
+
 
 ###########
 # Help function
@@ -20,20 +23,19 @@ Help()
    # Display Help
    echo ""
    echo "****************************************"
-   echo "HELP: JKG neo4j JSON validation script"
-   echo "Validates a JSON file in JKG format against the JKG Schema."
+   echo "HELP: JKG neo4j JSON batch script"
+   echo "Divides a JSON file in JKG format into a set of smaller batch files."
    echo
-   echo "Syntax: ./validate_jkg_json.sh [-c config file]"
+   echo "Syntax: ./batch_jkg_json.sh [-c config file]"
    echo "options (in any order)"
    echo "-c   path to config file containing properties for the container (REQUIRED: default='container.cfg'."
    echo "-h   print this help"
-   echo "example: './validate_jkg_json.sh' validates the JSON file specified in the config file."
+   echo "example: './batch_jkg_json.sh' distributes a JKG JSON file"
    echo "Review container.cfg.example for descriptions of parameters."
 }
 ##############################
 # Set defaults.
 config_file="container.cfg"
-container_name="jkg-neo4j"
 
 # Default relative paths
 # Get relative path to current directory.
@@ -41,14 +43,12 @@ base_dir="$(dirname -- "${BASH_SOURCE[0]}")"
 # Convert to absolute path.
 base_dir="$(cd -- "$base_dir" && pwd -P;)"
 
-# JKG JSON import defaults
+# JKG JSON batch defaults
 log_dir="./python/log"
-log_file="import_jkg_json.log"
+log_file="batch_jkg_json.log"
 jkg_json_dir="./json"
 jkg_json_file="jkg.json"
 jkg_batch_size=1000000
-jkg_schema_json="JKG_Schema.json"
-
 
 ##############################
 # PROCESS OPTIONS
@@ -83,8 +83,9 @@ else
 fi
 
 ##############################
-# VALIDATE PARAMETERS FROM CONFIG FILE.
+# VALIDATE RELEVANT PARAMETERS FROM CONFIG FILE.
 
+# Common logging directory
 if [ ! -e "$log_dir" ]
   then
     echo "Error: log dir '$log_dir' not found".
@@ -92,6 +93,7 @@ if [ ! -e "$log_dir" ]
     exit 1;
 fi
 
+# JKG JSON file
 if [ ! -e "$jkg_json_dir" ]
   then
     echo "Error: source path '$jkg_json_dir' not found."
@@ -106,17 +108,19 @@ if [ ! -e "$jkg_json_full" ]
     exit 1;
 fi
 
-jkg_schema_full="$jkg_json_dir/$jkg_schema_json"
-if [ ! -e "$jkg_schema_full" ]
-  then
-    echo "Error: schema file '$jkg_schema_full' not in '$jkg_json_dir."
-    exit 1;
+# Batch size
+if [ "jkg_batch_size" == "" ]
+then
+  echo "Error: No batch size specified."
+  echo "Either accept the default (1000000) or specify a value in container.cfg."
+  exit;
 fi
 
 echo ""
 echo "**********************************************************************"
-echo "Validating JSON"
-echo " - JSON source file: $jkg_json_full "
+echo "Batching JKG JSON"
+echo " - JSON source file: $jkg_json "
 
-# Run the validation Python script, setting up a virtual environment if necessary.
-bash "$(dirname "${BASH_SOURCE[0]}")/run_python_venv.sh" ./python/validate_jkg_json.py
+# Run the Python script, setting up a virtual environment if necessary.
+bash "$(dirname "${BASH_SOURCE[0]}")/run_python_venv.sh" ./python/batch_jkg_json.py
+

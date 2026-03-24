@@ -33,12 +33,13 @@ class JKGBatch:
         self.clog.print_and_logger_info('Creating new path: ' + path)
         os.makedirs(path)  # Always recreate
 
+
     def _split_nodes(self):
         """
         Splits the nodes array in the JKG JSON source to a set of smaller
         JSON files, each containing up to the batch size number of elements.
         """
-        self.clog.print_and_logger_info('Splitting nodes into smaller JSON files')
+        self.clog.print_and_logger_info('Splitting nodes into smaller JSON files.')
 
         json_source = os.path.join(self.jkg_json_dir, self.jkg_json_file)
         with open(json_source, 'rb') as f:
@@ -55,8 +56,10 @@ class JKGBatch:
                         batch_progress.close()
 
                     # Start a new batch file.
-                    batch_file = 'JKG_Batch' + 'n' + str(int(i / self.jkg_batch_size)).zfill(4) + '_JKG.json'
+                    batch_file = 'JKG_Batch_' + 'nodes' + str(int(i / self.jkg_batch_size)).zfill(4) + '.json'
                     batch_path = os.path.join(self.jkg_json_dir,'batch',batch_file)
+
+                    # Start the nodes array that will contain the batch of nodes.
                     file = open(batch_path, "w")
                     file.write('{"nodes":[\n')
 
@@ -73,12 +76,13 @@ class JKGBatch:
                     # New line
                     file.write('\n,')
 
-                # Write the node object to output.
+                # Write the node object to the nodes array in the batch file.
                 file.write(json.dumps(item))
                 batch_progress.update(1)
 
                 if (i % self.jkg_batch_size) == (self.jkg_batch_size - 1):
                     # Close the current batch output file.
+                    # A nodes batch file will contain an empty rels array.
                     file.write('\n],"rels":[]}')
                     file.close()
                 i += 1
@@ -90,6 +94,7 @@ class JKGBatch:
             self.clog.print_and_logger_info('Finishing nodes')
             if (i % self.jkg_batch_size) != 0:
                 # Close the current batch output file.
+                # A nodes batch file will contain an empty rels array.
                 file.write('\n],"rels":[]}')
                 file.close()
 
@@ -107,7 +112,7 @@ class JKGBatch:
 
     def _start_rel_batch_file(self, prefix: str, ibatch: int) -> io.TextIOWrapper:
 
-        batch_file_name = 'JKG_Batch' + prefix + str(int(ibatch / self.jkg_batch_size)).zfill(4) + '_JKG.json'
+        batch_file_name = 'JKG_Batch_' + prefix + str(int(ibatch / self.jkg_batch_size)).zfill(4) + '.json'
         batch_path = os.path.join(self.jkg_json_dir, 'batch', batch_file_name)
 
         batch_file = open(batch_path, "w")
@@ -120,16 +125,18 @@ class JKGBatch:
             JSON files, each containing up to the batch size number of elements.
         """
 
-        self.clog.print_and_logger_info('Splitting rels into smaller JSON files')
+        self.clog.print_and_logger_info('Splitting rels into smaller JSON files.')
 
         json_source = os.path.join(self.jkg_json_dir, self.jkg_json_file)
 
         with open(json_source, 'rb') as f:
+
+            # Initialize batching flags
             i = 0
 
             # Boolean flags:
-            firstR = False # first rel batch?
-            firstCR = False # first CODE rel batch?
+            first_rel = False # first rel batch?
+            first_coderel = False # first CODE rel batch?
 
             batch_num = 0
             batch_progress = None
@@ -144,11 +151,13 @@ class JKGBatch:
                         batch_progress.close()
 
                     # Start new batch files for rels and CODE rels.
-                    rfile = self._start_rel_batch_file(prefix='r', ibatch=i)
-                    crfile = self._start_rel_batch_file(prefix='cr', ibatch=i)
+                    # Because two types of files are created for each batch,
+                    # it is possible that one of the files will be unnecessary.
+                    rfile = self._start_rel_batch_file(prefix='rel', ibatch=i)
+                    crfile = self._start_rel_batch_file(prefix='coderel', ibatch=i)
 
-                    firstCR = True
-                    firstR = True
+                    first_coderel = True
+                    first_rel = True
 
                     # Start a new per-batch progress bar.
                     batch_num += 1
@@ -161,15 +170,15 @@ class JKGBatch:
 
                 # Distribute rel items between non-CODE and CODE rels files.
                 if item['label'] == 'CODE':
-                    if not firstCR:
+                    if not first_coderel:
                         crfile.write('\n,')
                     crfile.write(json.dumps(item))
-                    firstCR = False
+                    first_coderel = False
                 else:
-                    if not firstR:
+                    if not first_rel:
                         rfile.write('\n,')
                     rfile.write(json.dumps(item))
-                    firstR = False
+                    first_rel = False
 
                 batch_progress.update(1)
 
@@ -197,6 +206,9 @@ class JKGBatch:
 
     def _split_json(self):
 
+        """
+        Divides the JKG JSON into smaller JSON files.
+        """
         self.clog.print_and_logger_error(f'Processing JKG JSON file:  {self.jkg_json_file}')
         batch_path = os.path.join(self.jkg_json_dir, 'batch')
         # Clear any prior batched files
@@ -222,6 +234,9 @@ class JKGBatch:
         self.jkg_batch_size = int(jkg_batch_size)
         self.clog = clog
 
+        # This size corresponds to a "dangling" or orphaned rel batch file--i.e.,
+        # one that was created with start/header objects, but will contain no
+        # actual data.
         self.dangling_file_size = 24
 
         self._split_json()
