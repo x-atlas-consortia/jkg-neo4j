@@ -20,8 +20,8 @@ def main():
     cfgobj = ConfigFile(filename=cfgfile)
 
     # Set up central logging.
-    log_dir = cfgobj.get('validation_log_dir')
-    log_file = cfgobj.get('validation_log_file')
+    log_dir = cfgobj.get('log_dir')
+    log_file = 'validate_jkg_json.log'
     clog = CentralLog(log_dir=log_dir, log_file=log_file)
     clog.print_and_logger_info('********')
     clog.print_and_logger_error('VALIDATE JKG JSON Script')

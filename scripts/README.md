@@ -50,60 +50,67 @@ The number of objects in an array of a batch file will be up to the batch size s
 ## Purpose
 Validates a JSON file in JSON Knowledge Graph (JKG) format.
 
-## Forms of validation
-**validate_jkg_json** performs two types of validation:
-1. Schema validation against the [JKG Schema](https://github.com/x-atlas-consortia/json-knowledge-graph/blob/main/JKG_Schema.json), using the [jsonschema](https://python-jsonschema.readthedocs.io/en/latest/) package.
-2. Structural validation:
-   * checks for duplicate nodes
-   * checks for "referential integrity"--e.g., that node identifiers in the **rels** array have corresponding elements in the **nodes** array; etc.
-
 ## Components
 * **validate_jkg_json.sh**: Bash script
 * **validate_jkg_json.py**: Python script
 
-## Validation by parallel processing
+## Inputs
+* **JKG JSON** - a JSON file in JKG format that represents a knowledge graph. 
+* If the JKG JSON has been batched, schema validation will work with the batched files that were created in the _/batch_ subdirectory.
+* **JKG Schema** - the JKG schema
+Input file names and locations are specified in the common configuration file.
+
+## Types of validation
+**validate_jkg_json** can perform two types of validation:
+1. **Schema validation** against the [JKG Schema](https://github.com/x-atlas-consortia/json-knowledge-graph/blob/main/JKG_Schema.json), using the [jsonschema](https://python-jsonschema.readthedocs.io/en/latest/) package.
+2. **Structural validation**:
+   * checks for duplicate nodes
+   * checks for "referential integrity"--e.g., that node identifiers in the **rels** array have corresponding elements in the **nodes** array; etc.
+
+Schema validation can work with batched JSON files.
+Structural validation requires the entire JKG JSON file.
+
+## Schema validation by parallel processing
 A JKG JSON file is likely to be extremely large: for example, the JKG JSON produced from the 2025AB release of the UMLS is 4.4 GB.
 Validation of an entire JKG JSON against the entire JKG schema will likely require a considerable amount of time.
 
-To speed validation, the validation script allows for validation by parallel processing. 
+To speed validation, the validation script allows for schema validation by parallel processing. 
 The validation script distributes "chunks" of an input JSON file among a set of
 "worker" processes that work in parallel.
 
 The size of the chunk for parallel schema validation should be large enough to allow worker processes to finish before timeout.
 The script will warn if the chunk size is below 100.
 
-## Inputs
-* **JKG JSON** - a JSON file in JKG format that represents a knowledge graph. If the JKG JSON has been batched, schema validation will work with the batched files.
-* **JKG Schema** - the JKG schema
-Input file names and locations are specified in the common configuration file.
 
 ## Outputs
 ### in the /log directory:
-* **validate_jkg_json.log**- application log
+* **validate_jkg_json.log**- the application log
+
 ### in the input directory that contains the JKG JSON file:
 * **validation_errors.tsv**
     
-    TSV of validation errors. 
+    Tab-separated variables (TSV) file of validation errors. 
   * Errors are sorted by: 
     * array type (nodes first, then rels)
     * item - the JSON object in which the error was found
     * error message
-  * When validation by sampling is performed, errors are returned in random order, so errors are sorted by item.
+  * When parallel schema validation is performed, errors are returned in random order, so errors are sorted by item.
 
-* **missing_X_.csv** - CSVs of missing **X** elements, including:
+#### Structural validation error files
+* **missing_X_.csv** - CSVs of missing elements of type **X** elements, such as:
   * SABs not in the sources array
   * SABs in the properties of elements of the rels array but not in the sources array
   * concept labels not in node_labels
   * relationship labels not in rel_labels
   * start or end ids in rels without corresponding nodes
   
-* **duplicate_*_.csv** - CSVs of duplicate elements, including:
+* **duplicate_X_.csv** - CSVs of duplicate elements of type **X**, such as:
   * duplicate node ids in the nodes array
   * duplicate SABs in the sources array
   * duplicate labels in the node_labels array
   * duplicate labels in the rel_labels array
 
-### file rotation
+### Output file rotation
 * **validate_jkg_json.py** will append to **validate_jkg_json.log**. The developer will need to "rotate" the log manually by deleting it.
 * **validate_jkg_json.py** will delete prior validation CSV files as part of execution.
 
@@ -113,7 +120,11 @@ One way to interpret a schema validation error is to load both the item and the 
 into a prompt to GitHub Copilot and asking for an explanation. Copilot can often describe the
 validation error in greater detail.
 
+### Progress monitoring
 
+Validation will show progress bars when:
+* parsing JSON files
+* validating JSON files against the schema in parallel
 
 # import_jkg_json
 ## Purpose
