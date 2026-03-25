@@ -5,6 +5,10 @@ Class that validates JKG JSON files against the JKG schema.
 # Used for file management
 import io
 import os
+import re
+import json
+import ast
+import random
 import contextlib
 from pathlib import Path
 
@@ -48,6 +52,14 @@ class JKGValidate:
         # use parallel processing on batched files.
         self.parallel = cfg.get('schema_validation_parallel')=='true'
 
+        # Determine whether to do spot validation for the case of
+        # parallel schema validation of batched files
+        self.spot_validation = cfg.get('schema_validation_spot')=='true'
+        self.num_spot_checks = int(cfg.get('num_spot_checks'))
+
+        # Optional list of specific batch files to validate
+        self.batch_files=cfg.get('batch_files')
+
         # Get the validation parallel processing chunk size.
         self.jkg_validate_chunk = int(cfg.get('jkg_validate_chunk'))
         if self.parallel and self.jkg_validate_chunk < 10:
@@ -74,14 +86,16 @@ class JKGValidate:
 
         self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
 
+        # Validate JSON against schema.
+        self._validate_json_against_schema()
+
         if self.check_uniqueness | self.check_referential_integrity:
             # Parse JKG JSON.
             self.clog.print_and_logger_warning('Historical time estimates are based on the UMLS JKG.JSON (4+ GB).')
             self._parse_jkg_files()
             self._validate_json_structurally()
 
-        # Validate JSON against schema.
-        self._validate_json_against_schema()
+
 
     def _validate_json_structurally(self):
         """
@@ -211,7 +225,6 @@ class JKGValidate:
 
             chunk_size = 1000
             chunks = [issue_frame[i:i + chunk_size] for i in range(0, len(issue_frame), chunk_size)]
-            chunks.columns = ['id']
 
             for i, chunk in enumerate(tqdm(chunks, desc="Writing issues")):
                 chunk.to_csv(issuefile, mode='w', index=False, header=(i == 0))
@@ -315,7 +328,8 @@ class JKGValidate:
         Formats a jsonschema ValidationError into a human-readable message.
         :param error: a jsonschema ValidationError (a deque)
         :param items: the slice of items being validated
-        :return: tab-delimited error message
+        :return: a string corresponding to one or more tab-delimited lines
+
         """
         path = list(error.absolute_path)
         msg = error.message
@@ -324,7 +338,34 @@ class JKGValidate:
         if path and isinstance(path[0], int):
             item = items[path[0]]
 
+        """
+        Check if the message itself contains an embedded list
+        --e.g., "[{...}, {...}] has non-unique elements"
+        If so, then split the message into multiple message lines (delimited with
+        line feeds), with each line being a tab-delimited string.
+        """
+
+        list_match = re.match(r'^(\[.*\])\s+(.+)$', msg, re.DOTALL)
+        if list_match:
+            embedded_list_str, suffix_msg = list_match.groups()
+            try:
+                """
+                ast.literal_eval safely parses Python literal syntax 
+                (single-quoted dicts, nested structures, etc.), 
+                whereas json.loads strictly requires double-quoted JSON.
+                """
+                embedded_list = ast.literal_eval(embedded_list_str)
+                return '\n'.join(f'{suffix_msg}\t{i}' for i in embedded_list)
+            except json.JSONDecodeError:
+                pass
+
+        # If item is an unembedded list, return each element in the list on its
+        # own line.
+        if isinstance(item, list):
+            return '\n'.join(f'{msg}\t{i}' for i in item)
+
         return f'{msg}\t{item}'
+
 
     def _write_validation_errors(self, validation_errors: set, mode:str='w'):
         """
@@ -377,7 +418,17 @@ class JKGValidate:
         # Use a validator class in order to obtain details on validation errors.
         v = Draft202012Validator(schema)
         errors = sorted(v.iter_errors(items), key=lambda e: e.path)
-        return {self._format_validation_error(error=error, items=items) for error in errors}
+
+        """
+        The return from _format_validation_error is a string that 
+        represents one or more lines. 
+        Multiple-line returns correspond to errors that apply to multiple elements.
+        Each error line is delimited with line feeds.
+        The two elements in each line's string are tab-delimited.
+        """
+
+        return {line for error in errors for line in
+                self._format_validation_error(error=error, items=items).split('\n')}
 
     def _validate_batched_json_files(self):
         """
@@ -386,10 +437,26 @@ class JKGValidate:
 
         self.clog.print_and_logger_info(
             f"Parallel processing chunk size = {self.jkg_validate_chunk}.")
+        if self.batch_files:
+            self.clog.print_and_logger_info(f'Validating list of batch files: {self.batch_files}')
+        elif self.spot_validation:
+            self.clog.print_and_logger_info(f'Spot validation, using {self.num_spot_checks} randomly selected files.')
 
         batch_path = Path(os.path.join(self.jkg_json_dir, 'batch'))
 
-        for filepath in sorted(batch_path.iterdir()):
+        all_files = sorted([f for f in batch_path.iterdir() if f.is_file()])
+
+        if self.batch_files:
+            # If the key is a list, then use the list; if a single file, then wrap the file in a list.
+            batch_files = self.batch_files if isinstance(self.batch_files, list) else [self.batch_files]
+            files_to_validate = [Path(os.path.join(self.jkg_json_dir, 'batch', f)) for f in batch_files]
+        elif self.spot_validation:
+            files_to_validate = random.sample(all_files, min(self.num_spot_checks, len(all_files)))
+        else:
+            files_to_validate = all_files
+
+        for filepath in files_to_validate:
+            print(filepath)
             if filepath.is_file():
                 # Get the type from the file name.
                 if '_node' in filepath.name:
@@ -477,11 +544,10 @@ class JKGValidate:
         """
         self.clog.print_and_logger_info("Validating JKG JSON file against the JKG schema.")
 
-        if self.parallel:
-            self.clog.print_and_logger_info('Using parallel processing on batched files.')
+        if self.batch_files or self.parallel:
+            self.clog.print_and_logger_info('Using parallel processing on batch files.')
             # Validate the JSON via parallel processing by schema domain.
             self._validate_batched_json_files()
-
         else:
             # Validate against the top level schema.
             # This will both take a very long time against a large JSON.

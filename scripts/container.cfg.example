@@ -45,6 +45,10 @@ jkg_batch_size=1000000
 schema_validation_parallel=true
 # Chunk size for parallel validation
 jkg_validate_chunk=100
+# Whether to do spot-validation if batch files
+schema_validation_spot=true
+num_spot_checks=5
+batch_files=
 # Structural validation flags
 check_uniqueness=true
 check_referential_integrity=true

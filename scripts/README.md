@@ -55,9 +55,12 @@ Validates a JSON file in JSON Knowledge Graph (JKG) format.
 * **validate_jkg_json.py**: Python script
 
 ## Inputs
-* **JKG JSON** - a JSON file in JKG format that represents a knowledge graph. 
-* If the JKG JSON has been batched, schema validation will work with the batched files that were created in the _/batch_ subdirectory.
-* **JKG Schema** - the JKG schema
+* JSON files
+  * If the JKG JSON has been batched, schema validation will work with the batched files that were created in the _/batch_ subdirectory.
+  * If the JKG JSON has not been batched, schema validation will work with the entire JKG JSON file.
+  * If spot-validation has been specified in the **container.cfg** file (_schema_validation_spot_=true and _num_spot_checks_= a number), then schema validation will work with a random selection of files from the batch file directory.
+*  **JKG Schema** - the JKG schema
+  
 Input file names and locations are specified in the common configuration file.
 
 ## Types of validation
@@ -67,8 +70,30 @@ Input file names and locations are specified in the common configuration file.
    * checks for duplicate nodes
    * checks for "referential integrity"--e.g., that node identifiers in the **rels** array have corresponding elements in the **nodes** array; etc.
 
-Schema validation can work with batched JSON files.
-Structural validation requires the entire JKG JSON file.
+# Configurable scope for schema validation
+The scope of schema validation can be controlled by values in the **container.cfg** configuration file.
+Limiting the scope of schema validation can speed debugging.
+
+## Structural validation
+Structural validation requires the entire JKG JSON file; however, it is possible to specify the types of checks with boolean flags:
+   * **check_uniqueness**
+   * **check_referential**
+## Schema validation
+Schema validation scope can be finely controlled via configuration.
+### Parallelized schema validation
+  * _schema_validation_parallel_ is a boolean flag.
+    * If _true_, then schema validation will employ parallel processing, and work on batch files.
+    * If not _true_, then schema validation will work with the entire JKG JSON.
+  * _jkg_validate_chunk_ is an integer that specifies the number of nodes in each parallel processing chunk. _jkg_validate_chunk_ should be at least 100, to prevent timeout errors in parallel processes.
+### Spot checking
+Spot checking allows for validation of a random sample of batch files.
+  * _schema_validation_spot_ is a boolean flag; if true, then schema validation will work with a random subset of batch files. 
+  * _num_spot_checks_ is an integer that specifies the number of batch files to select for spot checking
+### Individual batch file validation
+It is possible to evaluate a specific set of individual batch files.
+* _batch_files_ is a list of file names to evaluate. 
+
+Specific batch file validation overrides all other forms of schema validation.
 
 ## Schema validation by parallel processing
 A JKG JSON file is likely to be extremely large: for example, the JKG JSON produced from the 2025AB release of the UMLS is 4.4 GB.
@@ -81,6 +106,7 @@ The validation script distributes "chunks" of an input JSON file among a set of
 The size of the chunk for parallel schema validation should be large enough to allow worker processes to finish before timeout.
 The script will warn if the chunk size is below 100.
 
+Schema validation using parallel processing is only available for batched JKG JSON files.
 
 ## Outputs
 ### in the /log directory:
