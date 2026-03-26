@@ -1,6 +1,0 @@
-// Creates constraints for files imported into the neo4j instance.
-CREATE CONSTRAINT FOR (n:Source) REQUIRE n.id IS UNIQUE;
-CREATE CONSTRAINT FOR (n:Term) REQUIRE n.id IS UNIQUE;
-CREATE CONSTRAINT FOR (n:Concept) REQUIRE n.id IS UNIQUE;
-CREATE CONSTRAINT FOR (n:Rel_Label) REQUIRE n.id IS UNIQUE;
-CREATE CONSTRAINT FOR (n:Node_Label) REQUIRE n.id IS UNIQUE;

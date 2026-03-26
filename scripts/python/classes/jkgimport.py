@@ -7,17 +7,13 @@ JKG schema.
 
 import os
 from pathlib import Path
-from tqdm import tqdm
-import neo4j
+
 
 # Common configuration
 from .configfile import ConfigFile
 
 # Centralized application logging
 from .centrallog import CentralLog
-
-# Timer for lazy event process monitoring
-from .jkg_timer import JkgTimer
 
 # Neo4j manager
 from .neo4japp import Neo4jApp
@@ -60,3 +56,16 @@ class JkgImport:
         neo4japp = Neo4jApp(cfg=self.cfg, clog=self.clog)
 
 
+        # neo4j error: trying to create a constraint that exists already
+        ignore_errors = ['Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists']
+
+        neo4japp.execute_write_query(cypherfile='create_constraint_source.cypher', ignore_errors=ignore_errors)
+        neo4japp.execute_write_query(cypherfile='create_constraint_term.cypher', ignore_errors=ignore_errors)
+        neo4japp.execute_write_query(cypherfile='create_constraint_concept.cypher', ignore_errors=ignore_errors)
+        neo4japp.execute_write_query(cypherfile='create_constraint_rel_label.cypher', ignore_errors=ignore_errors)
+        neo4japp.execute_write_query(cypherfile='create_constraint_node_label.cypher', ignore_errors=ignore_errors)
+
+        # Import batch files.
+        neo4japp.execute_batched_write_query(type='node')
+        neo4japp.execute_batched_write_query(type='rel')
+        neo4japp.execute_batched_write_query(type='coderel')

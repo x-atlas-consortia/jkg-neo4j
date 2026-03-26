@@ -153,10 +153,11 @@ NEO4J=/usr/src/app/neo4j
 # by means of running build_container.sh and specifying db_mode=external in the config file.
 IMPORT="$NEO4J"/import
 
-# Copy the JKG JSON from the source directory to the import directory. This step is necessary: if you create a container with a
+# Copy the JKG JSON path (including the batch subdirectory) from the source directory to the import directory. This step is necessary: if you create a container with a
 # bind mount to an non-empty directory, the bind mount will obscure the bound directory's existing content--i.e., it will not
 # recognize it. To work around this, copy files to the bind mount after it is created.
-cp "$jkg_json_full" "$import_dir"
+echo "Copying JKG JSON files to $import_dir"
+cp -rp "$jkg_json_dir" "$import_dir"
 
 # Delete the specified JKG database from the external bind mount, if it exists.
 echo "Dropping existing ontology database files from external bind mount."

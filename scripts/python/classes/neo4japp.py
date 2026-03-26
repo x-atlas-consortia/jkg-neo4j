@@ -10,7 +10,9 @@ ASSUMPTIONS:
 """
 
 import os
+from pathlib import Path
 import time
+from tqdm import tqdm
 
 # Common configuration
 from .configfile import ConfigFile
@@ -29,6 +31,9 @@ class Neo4jApp:
         self.cfg = cfg
         self.clog = clog
 
+        # Get the batch directory, which is in the import volume.
+        self.batch_dir = Path(os.path.join(os.getcwd(),'import',self.cfg.get('jkg_json_dir'),'batch'))
+
         neo4j_pasword = self.cfg.get('neo4j_password')
         bolt_port = self.cfg.get('bolt_port')
 
@@ -40,6 +45,15 @@ class Neo4jApp:
 
     def close(self):
         self.driver.close()
+
+    def _getquerycypher(self, cypherfile:str) -> str:
+        # Opens an external file to obtain a query Cypher.
+
+        fpath = os.path.join(os.getcwd(), 'python','cypher',cypherfile)
+        f = open(fpath, "r")
+        query = f.read()
+        f.close()
+        return query
 
     def _indexes_are_populating(self) -> bool:
         """
@@ -56,10 +70,49 @@ class Neo4jApp:
             for record in recds:
                 return record['number_populating'] > 0
 
-    def execute_write_query(self, query: str):
+    def execute_batched_write_query(self, type: str) -> None:
+        """
+        Executes a set of write queries for all batch files of a certain type
+        in the batch directory.
+        :param type: type of batch files to process
+
+        """
+        if type == 'node':
+            query = self._getquerycypher('import_nodes.cypher')
+        elif type == 'rel':
+            query = self._getquerycypher('import_rels.cypher')
+        else:
+            query = self._getquerycypher('import_coderels.cypher')
+
+        files = sorted([
+            f for f in self.batch_dir.iterdir()
+            if f.is_file() and f.name.startswith(f'JKG_Batch_{type}') and f.name.endswith('.json')
+        ])
+
+        for filepath in tqdm(files, desc=f'Importing {type} files', unit=' files'):
+            print(filepath.name)
+            self._execute_write_query_with_params(
+                query=query,
+                params={'file': str(filepath.name)}
+                )
+
+    def execute_write_query(self, cypherfile: str, ignore_errors: list[str] = None):
+        """
+        Executes a write query based on a cypher file.
+        :param cypherfile: cypher file to execute
+        :param ignore_errors: list of errors to ignore
+        """
+
+        query = self._getquerycypher(cypherfile)
+        self.clog.print_and_logger_info(f'Executing: {cypherfile}')
+        self._execute_write_query_with_params(query=query, params={}, ignore_errors=ignore_errors)
+
+    def _execute_write_query_with_params(self, query: str, params: dict, ignore_errors: list[str] = None):
         """
         Executes a single statement that writes to the database.
-        :param query: The query to execute.
+        :param query: Cypher query string
+        :param params: Dictionary of neo4j parameters
+        :param ignore_errors: list of errors to ignore
 
         Assumption: query is a Cypher command that writes to the database--e.g., CREATE INDEX; DELETE; etc.
 
@@ -70,9 +123,14 @@ class Neo4jApp:
             # sys.stderr.write('At least one index is still populating. Waiting 1 second...\n')
             time.sleep(1)
 
-        # Transaction management is not necessary for the known use cases, so just use session.run.
-        with self.driver.session() as session:
-            session.run(query)
+        try:
+            with self.driver.session() as session:
+                session.run(query, **params)
+        except neo4j.exceptions.ClientError as e:
+            if ignore_errors and e.code in ignore_errors:
+                pass
+            else:
+                raise
 
         return
 
