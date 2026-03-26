@@ -12,19 +12,25 @@ ASSUMPTIONS:
 import os
 import time
 
-# To handle the common config file, which is not in INI format.
-from configobj import ConfigObj
+# Common configuration
+from .configfile import ConfigFile
+
+# Centralized application logging
+from .centrallog import CentralLog
+
 import neo4j
 
 class Neo4jApp:
 
-    def __init__(self):
+    def __init__(self,cfg: ConfigFile,  clog: CentralLog):
 
         # Read information from common config file.
 
-        self.config = self._get_config()
-        neo4j_pasword = self.config.get('neo4j_password')
-        bolt_port = self.config.get('bolt_port')
+        self.cfg = cfg
+        self.clog = clog
+
+        neo4j_pasword = self.cfg.get('neo4j_password')
+        bolt_port = self.cfg.get('bolt_port')
 
         # Connect to the specified UBKG instance.
         uri = f'bolt://localhost:{bolt_port}'
@@ -34,12 +40,6 @@ class Neo4jApp:
 
     def close(self):
         self.driver.close()
-
-    def _get_config(self) -> ConfigObj:
-
-        # Read from the common config file, which is assumed to be somewhere in the application path.
-        cfgfile = os.path.join(os.getcwd(),'container.cfg')
-        return ConfigObj(cfgfile)
 
     def _indexes_are_populating(self) -> bool:
         """

@@ -41,17 +41,27 @@ jkg_batch_size=1000000
 
 
 # JKG JSON VALIDATION
-# Whether schema validation is to use parallel processing
-schema_validation_parallel=true
-# Chunk size for parallel validation
-jkg_validate_chunk=100
-# Whether to do spot-validation if batch files
-schema_validation_spot=true
-num_spot_checks=5
-batch_files=
-# Structural validation flags
-check_uniqueness=true
-check_referential_integrity=true
+
+# SCHEMA VALIDATION
+
 # Validation error file
 schema_validation_error_file=schema_validation_errors.tsv
+
+# Whether schema validation can use parallel processing (true) or not
+schema_validation_parallel=false
+# Parallel processing chunk size
+parallel_chunk=1000
+# Whether schema validation uses batch files (true) instead of the entire JKG JSON
+schema_validation_batch=true
+# Whether to do spot-validation using a random selection of batch files
+schema_validation_spot=false
+# Number of random batch files to use in spot validation
+num_spot_checks=10
+# Specific batch files to validate--a comma-delimited list of file names
+# (e.g., JKG_Batch_coderel0010.json,JKG_Batch_rel0001.json)
+schema_validation_specific_batch_files=
+
+# STRUCTURAL VALIDATION
+check_uniqueness=false
+check_referential_integrity=false
 

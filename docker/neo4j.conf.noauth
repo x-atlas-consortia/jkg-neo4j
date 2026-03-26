@@ -28,6 +28,12 @@ dbms.security.auth_enabled=false
 # Enable this to be able to upgrade a store from an older version.
 #dbms.allow_upgrade=true
 
+# For importing of JKG JSON files via APOC.
+#server.memory.heap.initial_size=16g
+#server.memory.heap.max_size=16g
+#server.memory.pagecache.size=16g
+#dbms.memory.transaction.total.max=12g
+
 #********************************************************************
 # Memory Settings
 #********************************************************************

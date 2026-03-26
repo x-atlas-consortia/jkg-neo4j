@@ -31,11 +31,10 @@ Help()
    echo "HELP: JKG neo4j JSON import script"
    echo "Imports a JSON file in JKG format into a new ontology database in a neo4j instance hosted in a Docker container."
    echo
-   echo "Syntax: ./export_db.sh [-c config file]"
+   echo "Syntax: ./import_jkg_json.sh [-c config file]"
    echo "options (in any order)"
    echo "-c   path to config file containing properties for the container (REQUIRED: default='container.cfg'."
    echo "-h   print this help"
-   echo "example: './import_csvs.sh' exports the data folder of the container specified in the config file."
    echo "Review container.cfg.example for descriptions of parameters."
 }
 ##############################
@@ -129,7 +128,7 @@ if [ ! -e "$jkg_json_full" ]
 fi
 
 
-# max Java heap memory
+# max Java heap memory. May need to be adjusted for JSON
 #if [ "$heap_import" == "" ]
 #then
   #echo "Error: no value of max Java heap memory for CSV import specified."
@@ -190,22 +189,5 @@ echo ""
 #docker exec "$container_name" \
 #bash -c "export JAVA_OPTS='-server -Xms$heap_import -Xmx$heap_import'"
 
-
-# Execute the python script to import the JSON.
-VENV=./venv
-
-echo "Executing Python script to import JKG JSON..."
-if [[ -d ${VENV} ]] ; then
-  echo "*** Using Python venv in ${VENV}"
-  source ${VENV}/bin/activate
-else
-  echo "*** Installing Python venv to ${VENV}"
-  python3 -m venv ${VENV}
-  python3 -m pip install --upgrade pip
-  source ${VENV}/bin/activate
-  echo "*** Installing required packages..."
-  pip install -r ./python/requirements.txt
-  echo "*** Done installing python venv"
-fi
-
-python3 ./python/import_jkg_json.py
+# Run the validation Python script, setting up a virtual environment if necessary.
+bash "$(dirname "${BASH_SOURCE[0]}")/run_python_venv.sh" ./python/import_jkg_json.py

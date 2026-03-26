@@ -48,27 +48,39 @@ class JKGValidate:
         # Application log
         self.clog = clog
 
+        self.clog.print_and_logger_warning('File parsing time estimates are based on the UMLS 2025AB JKG.JSON (4+ GB).')
+
+        # PARALLEL PROCESSING PARAMETERS
         # Determine whether the schema validation type should
-        # use parallel processing on batched files.
-        self.parallel = cfg.get('schema_validation_parallel')=='true'
-
-        # Determine whether to do spot validation for the case of
-        # parallel schema validation of batched files
-        self.spot_validation = cfg.get('schema_validation_spot')=='true'
-        self.num_spot_checks = int(cfg.get('num_spot_checks'))
-
-        # Optional list of specific batch files to validate
-        self.batch_files=cfg.get('batch_files')
+        # use parallel processing.
+        self.parallel = cfg.get('schema_validation_parallel').lower()=='true'
 
         # Get the validation parallel processing chunk size.
-        self.jkg_validate_chunk = int(cfg.get('jkg_validate_chunk'))
-        if self.parallel and self.jkg_validate_chunk < 10:
-            self.clog.print_and_logger_warning(f"A small chunk size of {self.jkg_validate_chunk} is likely to result "
+        self.validate_chuck_size = int(cfg.get('parallel_chunk'))
+
+        if self.parallel and self.validate_chuck_size < 10:
+            self.clog.print_and_logger_warning(f"A small chunk size of {self.validate_chuck_size} is likely to result "
                                                f"in timeout errors or other issues from parallel processing. "
                                                f"The recommended minimum chunk size is 100.")
 
+        # BATCH VS ENTIRE
+        # Whether to use batched JKG JSON files or the entire JKG JSON as the
+        # input for schema validation.
+        self.batch = cfg.get('schema_validation_batch').lower()=='true'
+
+        # SCOPE OPTIONS
+
+        # Determine whether to do spot validation using a random selection
+        # of batch files
+        self.spot_validation = cfg.get('schema_validation_spot').lower()=='true'
+        self.num_spot_checks = int(cfg.get('num_spot_checks'))
+
+        # Optional list of specific batch files to validate
+        self.specific_batch_files=cfg.get('schema_validation_specific_batch_files')
+
+        # STRUCTURAL VALIDATION
         # Get the flags for structural validation.
-        self.check_uniqueness = cfg.get('check_uniqueness')=='true'
+        self.check_uniqueness = cfg.get('check_uniqueness').lower()=='true'
         self.check_referential_integrity = cfg.get('check_referential_integrity')=='true'
 
         # Get the path to the JKG JSON source file and schema.
@@ -91,8 +103,7 @@ class JKGValidate:
 
         if self.check_uniqueness | self.check_referential_integrity:
             # Parse JKG JSON.
-            self.clog.print_and_logger_warning('Historical time estimates are based on the UMLS JKG.JSON (4+ GB).')
-            self._parse_jkg_files()
+            self._parse_jkg_json()
             self._validate_json_structurally()
 
 
@@ -116,15 +127,14 @@ class JKGValidate:
             # Validate referential integrity.
             self._validate_referential_integrity()
 
-    def _parse_jkg_files(self):
+    def _parse_jkg_json(self):
 
         """
-        Parse JKG JSON file and JKG schema file.
+        Parse JKG JSON file.
         """
 
         self.clog.print_and_logger_warning("Historical time to parse JKG.JSON: < 6 minutes.")
         self.JKG = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_json_file)
-        #self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
 
     def _load_json(self, dir: str, filename: str) -> dict | list:
         """
@@ -399,11 +409,22 @@ class JKGValidate:
 
     def _validate_entire(self):
 
-        # Validate entire JKG JSON against the JKG_Schema.
-        jtimer = JkgTimer(display_msg=f"Validation of entire JKG JSON against entire JKG schema")
-        validation_errors = self._validate_items_against_schema(items=self.JKG, schema=self.JKG_Schema)
-        jtimer.stop()
-        self._write_validation_errors(validation_errors=validation_errors)
+        """
+        Validates the entire JKG JSON against the JKG schema.
+
+        """
+        self.clog.print_and_logger_info('Validating entire JKG JSON against the JKG schema.')
+
+        if self.parallel:
+            # Validate entire JKG JSON using parallel processing.
+            filepath = Path(os.path.join(self.jkg_json_dir, self.jkg_json_file))
+            self._validate_parallel(arraykey='nodes', filepath=filepath)
+            self._validate_parallel(arraykey='rels', filepath=filepath)
+        else:
+            # Validate entire JKG JSON using single processing.
+            dir = self.jkg_json_dir
+            filename=self.jkg_json_file
+            self._validate_single(dir=dir, filename=filename)
 
     def _validate_items_against_schema(self, items: list, schema: dict) -> set:
         """
@@ -434,29 +455,26 @@ class JKGValidate:
         """
         Validates a set of batched JKG JSON files against the JKG Schema.
         """
-
-        self.clog.print_and_logger_info(
-            f"Parallel processing chunk size = {self.jkg_validate_chunk}.")
-        if self.batch_files:
-            self.clog.print_and_logger_info(f'Validating list of batch files: {self.batch_files}')
+        self.clog.print_and_logger_info(f'Validating batched JKG JSON files.')
+        if self.specific_batch_files:
+            self.clog.print_and_logger_info(f'Validating specific list of batch files: {self.specific_batch_files}')
         elif self.spot_validation:
-            self.clog.print_and_logger_info(f'Spot validation, using {self.num_spot_checks} randomly selected files.')
+            self.clog.print_and_logger_info(f'Validating via spot check, using {self.num_spot_checks} randomly selected batch files.')
 
         batch_path = Path(os.path.join(self.jkg_json_dir, 'batch'))
 
         all_files = sorted([f for f in batch_path.iterdir() if f.is_file()])
 
-        if self.batch_files:
+        if self.specific_batch_files:
             # If the key is a list, then use the list; if a single file, then wrap the file in a list.
-            batch_files = self.batch_files if isinstance(self.batch_files, list) else [self.batch_files]
-            files_to_validate = [Path(os.path.join(self.jkg_json_dir, 'batch', f)) for f in batch_files]
+            specific_batch_files = self.specific_batch_files if isinstance(self.specific_batch_files, list) else [self.specific_batch_files]
+            files_to_validate = [Path(os.path.join(self.jkg_json_dir, 'batch', f)) for f in specific_batch_files]
         elif self.spot_validation:
             files_to_validate = random.sample(all_files, min(self.num_spot_checks, len(all_files)))
         else:
             files_to_validate = all_files
 
         for filepath in files_to_validate:
-            print(filepath)
             if filepath.is_file():
                 # Get the type from the file name.
                 if '_node' in filepath.name:
@@ -464,9 +482,28 @@ class JKGValidate:
                 else:
                     arraykey = 'rels'
 
-                #self.clog.print_and_logger_info(f'Validating {filepath.name} for {arraykey}.')
+                if self.parallel:
+                    self._validate_parallel(arraykey=arraykey, filepath=filepath)
+                else:
+                    batch_dir = os.path.join(self.jkg_json_dir, 'batch')
+                    self._validate_single(dir=batch_dir, filename=filepath.name)
 
-                self._validate_parallel(arraykey=arraykey, filepath=filepath)
+
+    def _validate_single(self, dir: str, filename: str):
+
+        """
+        Validates a single JKG JSON file against the JKG Schema.
+        :param dir: path to the file
+        :param filename: file name
+        """
+        # Load file.
+        item = self._load_json(dir=dir, filename=filename)
+        # Load the JKG Schema.
+        jkg_schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
+        jtimer = JkgTimer(display_msg=f"Validating {filename} against JKG schema using single processing.")
+        validation_errors = self._validate_items_against_schema(items=item, schema=jkg_schema)
+        self._write_validation_errors(validation_errors=validation_errors)
+        jtimer.stop()
 
     def _validate_parallel(self, arraykey: str, filepath: Path):
 
@@ -480,19 +517,33 @@ class JKGValidate:
 
         """
 
+        self.clog.print_and_logger_info(f'Validating {filepath.name} against JKG schema with parallel processing.')
+        self.clog.print_and_logger_info(
+            f"Parallel processing chunk size = {self.validate_chuck_size}.")
+
         # Set up parallel processing chunking parameters.
 
         # Initialize lower bound of chunking
         s = 0
 
-        # while loop control:
-        # Parse the batch JSON file.
-        batch_dir = os.path.join(self.jkg_json_dir, 'batch')
-        batch_json=self._load_json(dir=batch_dir, filename=filepath.name)
-        max_index = len(batch_json[arraykey]) - 1
+        # WHILE LOOP CONTROL:
+        # Parse the JSON file.
+
+        if self.batch:
+            # Look in the batch subdirectory.
+            file_dir = os.path.join(self.jkg_json_dir, 'batch')
+            if not os.path.exists(file_dir):
+                self.clog.print_and_logger_error(f"Directory {file_dir} does not exist.")
+                exit(1)
+        else:
+            file_dir = self.jkg_json_dir
+
+        self.clog.print_and_logger_warning('Time to parse a batch file with 1M rows < 10 seconds.')
+        json_file=self._load_json(dir=file_dir, filename=filepath.name)
+        max_index = len(json_file[arraykey]) - 1
 
         # for tqdm pbar
-        num_chunks = (max_index + self.jkg_validate_chunk - 1) // self.jkg_validate_chunk
+        num_chunks = (max_index + self.validate_chuck_size - 1) // self.validate_chuck_size
 
         # Set up parallel processing:
         # Loky executor and parallel worker processes
@@ -506,11 +557,11 @@ class JKGValidate:
 
         while s < max_index:
             # Set upper bound of chunk.
-            f = min(s + self.jkg_validate_chunk, max_index)
+            f = min(s + self.validate_chuck_size, max_index)
 
             # Chunk = slice of nodes from array
             # items = self.JKG[arraykey][s:f]
-            items = batch_json[arraykey][s:f]
+            items = json_file[arraykey][s:f]
 
             # Associated subschema (nodes or rels)
             subschema = self.JKG_Schema['properties'][arraykey]
@@ -542,16 +593,14 @@ class JKGValidate:
         Validates the JKG JSON file against the JKG schema.
 
         """
-        self.clog.print_and_logger_info("Validating JKG JSON file against the JKG schema.")
+        #self.clog.print_and_logger_info("Validating JKG JSON file against the JKG schema.")
 
-        if self.batch_files or self.parallel:
-            self.clog.print_and_logger_info('Using parallel processing on batch files.')
-            # Validate the JSON via parallel processing by schema domain.
+        if self.batch:
+             # Validate the JSON via parallel processing by schema domain.
             self._validate_batched_json_files()
         else:
             # Validate against the top level schema.
             # This will both take a very long time against a large JSON.
-            self.clog.print_and_logger_info('Using single processing on entire JKG JSON file.')
             self._validate_entire()
 
 

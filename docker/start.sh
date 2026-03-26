@@ -108,5 +108,5 @@ echo -e "***Wait for the \"Started Server\" message ${NC}"
 $NEO4J/bin/neo4j console \
   | grep -v "org\.eclipse\.jetty" \
   | grep -v "Directories in use" \
-  | grep -v "usr/src/app/neo4j"\
-  | grep -v "UseBiasedLocking"
+  | grep -v "usr/src/app/neo4j"#\
+  #| grep -v "UseBiasedLocking"
