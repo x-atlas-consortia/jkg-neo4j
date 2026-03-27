@@ -59,11 +59,8 @@ class JkgImport:
         # neo4j error: trying to create a constraint that exists already
         ignore_errors = ['Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists']
 
-        neo4japp.execute_write_query(cypherfile='create_constraint_source.cypher', ignore_errors=ignore_errors)
-        neo4japp.execute_write_query(cypherfile='create_constraint_term.cypher', ignore_errors=ignore_errors)
-        neo4japp.execute_write_query(cypherfile='create_constraint_concept.cypher', ignore_errors=ignore_errors)
-        neo4japp.execute_write_query(cypherfile='create_constraint_rel_label.cypher', ignore_errors=ignore_errors)
-        neo4japp.execute_write_query(cypherfile='create_constraint_node_label.cypher', ignore_errors=ignore_errors)
+        # Create constraints on files to import.
+        neo4japp.create_constraints(ignore_errors=ignore_errors)
 
         # Import batch files.
         neo4japp.execute_batched_write_query(type='node')

@@ -65,3 +65,8 @@ schema_validation_specific_batch_files=
 check_uniqueness=false
 check_referential_integrity=false
 
+# JKG JSON IMPORT
+# base of url passed to apoc.loadjson.
+# Corresponds to external import volume of dockerized container.
+import_url_base=file:///usr/src/app/neo4j/import/json/batch/
+

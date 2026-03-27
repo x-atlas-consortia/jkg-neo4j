@@ -43,6 +43,10 @@ class Neo4jApp:
 
         self.driver = neo4j.GraphDatabase.driver(uri, auth=auth)
 
+        # Get the base of URLs to pass to apoc.loadjson to load the batched
+        # JKG JSON files.
+        self.import_url_base = self.cfg.get('import_url_base')
+
     def close(self):
         self.driver.close()
 
@@ -90,13 +94,14 @@ class Neo4jApp:
         ])
 
         for filepath in tqdm(files, desc=f'Importing {type} files', unit=' files'):
-            print(filepath.name)
+            # Build the url property of the call to apoc.loadjson.
+            file = f'{self.import_url_base}{filepath.name}'
             self._execute_write_query_with_params(
                 query=query,
-                params={'file': str(filepath.name)}
+                params={'file': file}
                 )
 
-    def execute_write_query(self, cypherfile: str, ignore_errors: list[str] = None):
+    def _execute_write_query(self, cypherfile: str, ignore_errors: list[str] = None):
         """
         Executes a write query based on a cypher file.
         :param cypherfile: cypher file to execute
@@ -119,9 +124,9 @@ class Neo4jApp:
         """
 
         # Enforce synchronous index creation.
-        while self._indexes_are_populating():
+        #while self._indexes_are_populating():
             # sys.stderr.write('At least one index is still populating. Waiting 1 second...\n')
-            time.sleep(1)
+            #time.sleep(1)
 
         try:
             with self.driver.session() as session:
@@ -135,4 +140,38 @@ class Neo4jApp:
         return
 
 
+    def create_constraints(self, ignore_errors: list[str] = None):
+        """
+        Creates constraints using neo4j
+        :param ignore_errors: list of errors to ignore
+        """
 
+        self._execute_write_query(cypherfile='create_constraint_source.cypher', ignore_errors=ignore_errors)
+        self._execute_write_query(cypherfile='create_constraint_term.cypher', ignore_errors=ignore_errors)
+        self._execute_write_query(cypherfile='create_constraint_concept.cypher', ignore_errors=ignore_errors)
+        self._execute_write_query(cypherfile='create_constraint_rel_label.cypher', ignore_errors=ignore_errors)
+        self._execute_write_query(cypherfile='create_constraint_node_label.cypher', ignore_errors=ignore_errors)
+
+        self._wait_for_constraints()
+
+    def _wait_for_constraints(self, expected_count=5, timeout=60):
+
+        """
+        Waits until all constraints come online.
+        :param expected_count: number of constraints to wait on
+        :param timeout: timeout in seconds
+        """
+
+        start = time.time()
+        while time.time() - start < timeout:
+            query = "SHOW CONSTRAINTS YIELD name RETURN count(*) AS count"
+            with self.driver.session() as session:
+                result = session.run(query)
+                count = result.single()["count"]
+                if count >= expected_count:
+                    print(f"All {count} constraints online")
+                    return
+                print(f"Waiting... {count}/{expected_count} constraints online")
+                time.sleep(2)
+
+        raise TimeoutError("Constraints did not come online in time")

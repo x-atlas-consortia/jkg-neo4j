@@ -194,7 +194,7 @@ that the process will require, based on working with similar files in the past.
 
 # import_jkg_json
 ## Purpose
-Imports a JKG JSON file into the neo4j instance hosted by the jkg-neo4j Docker container.
+Imports the set of batched JKG JSON files into the neo4j instance hosted by the jkg-neo4j Docker container.
 
 The script:
 * reads each file in the set of distributed JKG JSON batch files
@@ -204,16 +204,33 @@ The script:
 ## Components
 * **import_jkg_json.sh**: Bash script
 * **import_jkg_json.py**: Python script
-## Input
-A JKG JSON file
 
-## Outputs
+## Input
+A set of batched JKG JSON logs created by the **batch_jkg_json.sh** script.
+
+## Output
 * **import_jkg_json.log**: application log
 
-## Assumption
-The JKG JSON source has been both
-* validated against the JKG Schema
-* batch distributed
+## Configuration
+The import script executes the neo4j **apoc.loadjson**  command, which 
+accepts a url pointing to a JSON file to load. 
+
+When the Docker neo4j host is prepared properly
+by executing the **export_bind_mount.sh** and **build_container.sh** _external_ scripts, the 
+docker will have an external bind mount named _import_, to which the import script copies the 
+JKG JSON batch files. 
+
+The _import_url_base_ key should be set to the location of batched JKG JSON files _in the Docker container's file system_. 
+Because the docker host mounts an external volume, the file location for neo4j is in the path to the internal neo4j import.
+For example, if the external volume is in a _json/batch_ directory, the value of 
+_import_url_base_ in **container.cfg** should be _file:///usr/src/app/neo4j/import/json/batch/_.
+
+
+## Assumptions
+1. The JKG JSON source has been both
+   * validated against the JKG Schema
+   * batch distributed
+2. The **build_container** and **export_bind_mount** scripts have been run to build a Docker neo4j host with external volumes.
 
 # build_container
 ## Purpose
@@ -223,7 +240,7 @@ build a container either with an external volume mount or without.
 In the workflow to build a neo4j distribution, **build_container** executes numerous times:
 * initially to build an empty "primer" neo4j instance without an external volume
 * after export of the primer neo4j database to an external volume
-* after import of JKG source
+* after import of JKG JSON source
 * to build a container from a distribution
 
 ## Components
