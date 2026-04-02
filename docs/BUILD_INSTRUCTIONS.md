@@ -226,7 +226,7 @@ This will rebuild the Docker container with external bind mounts, including to t
 At this point, you should be able to open a browser and connect to the neo4j instance using the connection parameters 
 that you set in the configuration file. The instance will contain the JKG nodes and edges, but without indexes or constraints.
 
-## 7. Build the distribution Zip.
+## 6. Build the distribution Zip.
 
 Once you are assured that index creation is complete and no other transactions are occurring in the neo4j instance, execute `./build_distribution_zip.sh`
 
@@ -235,7 +235,7 @@ The **build_distribution_zip.sh** script:
 - Stops the Docker container.
 - Creates a zip file with the same name as the Docker container, containing the files for the distribution.
 
-## 8. Upload the distribution Zip.
+## 7. Upload the distribution Zip.
 
 Upload the distribution Zip to a folder in a Globus collection.
 
