@@ -123,11 +123,6 @@ class Neo4jApp:
 
         """
 
-        # Enforce synchronous index creation.
-        #while self._indexes_are_populating():
-            # sys.stderr.write('At least one index is still populating. Waiting 1 second...\n')
-            #time.sleep(1)
-
         try:
             with self.driver.session() as session:
                 session.run(query, **params)
@@ -135,6 +130,7 @@ class Neo4jApp:
             if ignore_errors and e.code in ignore_errors:
                 pass
             else:
+                self.clog.print_and_logger_error(f'Error: {e.message}')
                 raise
 
         return

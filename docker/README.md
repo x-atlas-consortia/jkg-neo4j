@@ -8,18 +8,20 @@ a JSON file in JSON Knowledge Graph (JKG) format.
 Docker images supporting both linux/amd64 (x86-64) and linux/arm64 platforms are available. 
 
 ## Requirements
-  - [Docker must be installed](https://docs.docker.com/engine/install/) with Docker BuildX build support.  By default Docker BuildX support is installed with Docker Desktop.  If you have a version of Docker installed without Desktop you can [install Docker BuildX manually](https://docs.docker.com/build/install-buildx/).
-  - The bash shell scripts contained in this directory are intended for use on Mac OS X or Linux.  These scripts will not work on Windows. (The resulting Docker images will, however, run on Windows.)
+  - [Docker must be installed](https://docs.docker.com/engine/install/) on the development machine with Docker BuildX build support.  By default, Docker BuildX support is installed with Docker Desktop.  If you have a version of Docker installed without Desktop you can [install Docker BuildX manually](https://docs.docker.com/build/install-buildx/).
+  - The Bash shell scripts contained in this directory are intended for use on Mac OS X or Linux.  These scripts will not work on Windows. (The resulting Docker images will, however, run on Windows.)
 
 ## Build Scripts
 #### build-push-multi-arch.sh
-The build-push-multi-arch.sh script is a bash script which will build and push to DockerHub the JKG Neo4j Docker images with support for both x86-64 and amd64 platforms. The script takes advantage of the Docker Buildx `build --platform` option to create the multi-platform images.
+
+**build-push-multi-arch.sh** script is a Bash script which will build and push to DockerHub the JKG Neo4j Docker images with support for both x86-64 (ARM 64-bit) and amd64 (AMD 64-bit) platforms. 
+The script takes advantage of the Docker Buildx `build --platform` option to create the multi-platform images.
 
 Before running this script first log into DockerHub with the `docker login` command using an account that has write privileges in the HuBMAP DockerHub Organization.
 
 usage: ./build-push-multi-arch.sh [-rv version]
-If run without the `-rv` option the script will build the multi-platform images and push them to DockerHub with the tag `hubmap/ubkg-neo4j:latest`.
-If given the `-rv <version` argument the script will build the multi-platrom images and push them to DockerHub with the addional tags of `hubmap/ubkg-neo4j:current-release` and `hubmap/ubkg-neo4j:<version>`, where <versions> is replaced with the version entered as the version argument.
+If run without the `-rv` option the script will build the multi-platform images and push them to DockerHub with the tag `hubmap/jkg-neo4j:latest`.
+If given the `-rv <version` argument the script will build the multi-platrom images and push them to DockerHub with the addional tags of `hubmap/jkg-neo4j:current-release` and `hubmap/jkg-neo4j:<version>`, where <versions> is replaced with the version entered as the version argument.
 
 e.g. `./build-push-multi-arch.sh -rv 3.2.4`
 

@@ -31,6 +31,17 @@ class JkgImport:
         # Configuration file
         self.cfg = cfg
 
+        # Whether to import rels and coderels.
+        # This is primarily used to debug Java Out of Memory Errors (OOMEs) related
+        # to import. If false, then the script will perform a partial import of
+        # just nodes, so that neo4j-admin server memory-recommendation has a database
+        # for which to make recommendations.
+        self.import_rels = cfg.get('import_rels').lower()=='true'
+
+        if not self.import_rels:
+            self.clog.print_and_logger_warning('This import will not include relationships (rels and coderels).')
+            self.clog.print_and_logger_warning('To enable import of relationships, set import_rels to true in container.cfg')
+
         # Get the path to the JKG JSON source file.
         self.jkg_json_dir = cfg.get('jkg_json_dir')
         batch_dir = Path(os.path.join(self.jkg_json_dir,'batch'))
@@ -64,5 +75,7 @@ class JkgImport:
 
         # Import batch files.
         neo4japp.execute_batched_write_query(type='node')
-        neo4japp.execute_batched_write_query(type='rel')
-        neo4japp.execute_batched_write_query(type='coderel')
+
+        if self.import_rels:
+            neo4japp.execute_batched_write_query(type='rel')
+            neo4japp.execute_batched_write_query(type='coderel')

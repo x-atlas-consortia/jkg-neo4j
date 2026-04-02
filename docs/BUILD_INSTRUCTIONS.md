@@ -1,6 +1,6 @@
 # JSON Knowledge Graph (JKG) 
 
-# Instructions for building the Docker neo4j Distribution
+# Instructions for building the Docker jkg-neo4j Distribution
 
 Building a JKG neo4j distribution involves a complicated workflow that generates a
 neo4j database as an external bind mount for a Docker container that hosts
@@ -19,10 +19,10 @@ The goals of the development infrastructure include:
 The objective of the build workflow is to build a complete and performant JKG neo4j database that 
 will not be contained in the public Docker image. To acheive this objective, the workflow:
 - starts with the empty default database that is part of the installation of neo4j
-- uses this database as a primer
+- uses this database as a "primer"
 - exports the primer database to be an external bind mount of a Docker container
-- converts the primer database into a JKG database by importing a source JKG JSON into the primer
 - creates indexes and constraints in the JKG database
+- converts the primer database into a JKG database by importing a source JKG JSON into the primer
 
 The following image illustrates the workflow.
 
@@ -41,12 +41,14 @@ The host machine's specifications include:
 ### Python
 The workflow includes execution of the Python script **import_jkg_json.py** that imports data from a JKG JSON file into the neo4j instance.
 
-If the Python script will be used, install Python 3 on the development machine. 
+If the Python script will be used, install Python (version >= 3.13) on the development machine. 
 
-### Java max heap memory recommendations
-The recommended values for Java max heap memory in the configuration file depend on the stage of the workflow.
+### neo4j memory recommendations
+The recommended values for server memory in **neo4j.conf**
+depend on the development machine.
 
-The recommendations are based on the following use case:
+The default recommendations in the _CUSTOM MEMORY Settings_ section of **neo4j.conf** 
+are based on the following use case:
 1. Developer machine: 
    - MacBook Pro
    - Apple M1 Max processor
@@ -54,19 +56,41 @@ The recommendations are based on the following use case:
 2. Docker
 3. neo4j server
    - Community Edition
-   - v 5.11
-4. 27 GB UBKG database (Data Distillery)
+   - version >= 5.15
+4. JKG based on 2025AB UMLS
 
-If your use case differs, obtain recommendations using neo4j-admin as shown in the **source** column.
+Recommendations:
+```azure
+server.memory.heap.initial_size=5000m
+server.memory.heap.max_size=5000m
+server.memory.pagecache.size=6700m
+```
 
-| Workflow            | Recommended Java Heap memory | source                                   |
-|---------------------|------------------------------|------------------------------------------|
-| import of CSVs      | -Xms1.003g -Xmx1.003g        | neo4j-admin import                       |
-| creation of indexes | -Xms3.500g -Xmx3.500g        | neo4j-admin server memory-recommendation |
+#### Changing memory configuration
+Neo4j memory configuration is complex. Neo4j provides [extensive recommendations](https://neo4j.com/docs/operations-manual/current/performance/memory-configuration/) for memory configuration. 
+General recommendations are available through sources that include GitHub Copilot.
+
+The simplest option for obtaining an optimal memory configuration is to run **[neo4j-admin server memory-recommendation](https://neo4j.com/docs/operations-manual/current/configuration/neo4j-admin-memrec/)** for the neo4j instance.
+To do this in a Dockerized jkg-neo instance,
+1. "Step into" the Docker container with the command `docker exec -it <name of container> bash`.
+2. Execute `./neo4j-admin server memory-recommendation`.
+3. Modify the custom memory values in both **neo4j.conf** and **neo4j.conf.noauth**.
+4. Rebuild the Docker image as described in the **README.md** file in the _docker_ directory.
+
+#### Special case: import issues
+The use of **neo4j-admin server memory-recommendation** assumes that the neo4j database contains data.
+
+One known case of potential memory issues involves the import of relationships. If the import fails, the 
+neo4j instance may not contain a database that can be used to obtain memory recommendations.
+
+If an import fails because of memory issues with the import of relationships, it may be possible to determine an optimal  
+memory allocation, based on a partial import of just nodes. To import just the nodes into the jkg-neo4j instance, 
+set _import_rels_=false in **container.cfg**.
+Once the import completes, use **neo4j-admin server memory-recommendation** as described above.
 
 ## Obtain source JKG JSON
-TBD
-
+After generating a JSON that conforms to the JKG schema, copy the JKG JSON into a subdirectory of the application directory 
+named _/json_.
 
 # jkg-neo4j Repository content
 ## docker directory
@@ -95,18 +119,30 @@ Copy **container.cfg.example** to a file named **container.cfg**. (Files with ex
 
 Uncomment and edit variables in the configuration file as necessary.
 
-| Value                       | Purpose                                                                 | Recommendation                                                                                                                                                                                         |
-|-----------------------------|-------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| container_name              | Name of the Docker container                                            | accept default                                                                                                                                                                                         |
-| docker_tag                  | Tag for the Docker container                                            | If you are modifying the Docker image and have built a local image with **build-local.sh**, set *docker_tag=local*; otherwise, accept the default, which is name of the published image in Docker Hub. |
-| neo4j_password              | Password for the neo4j user                                             | minimum of 8 characters, including at least one letter and one number                                                                                                                                  |
-| ui_port                     | Port used by the neo4j browser                                          | number other than 7474 to prevent possible conflicts with local installations of neo4j                                                                                                                 |
-| bolt_port                   | Port used by neo4j bolt (Cypher)                                        | number other than 7687 to prevent possible conflicts with local installations of neo4j                                                                                                                 |
-| read_mode                   | Whether the neo4j database is *read-only* or *read-write*               | Because you will be writing to the database, set *read_mode=read-write*.                                                                                                                               |
-| db_mount_dir                | Path to the external neo4j database  (bind mount)                       | accept default (/data)                                                                                                                                                                                 |
-| json_dir                    | Path to the folder that contains the JKG JSON file                      | accept default                                                                                                                                                                                         |
-| TO DO: VERIFY heap_import   | Max Java heap memory size for importing CSVs                            | accept default                                                                                                                                                                                         |
-| TO DO: VERIFY heap_indexing | Max Java heap memory size for creating indexes and constraints in neo4j | accept default                                                                                                                                                                                         |~~
+| Value                                         | Purpose                                                                                          | Recommendation                                                                                                                                                                                         |
+|-----------------------------------------------|--------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| container_name                                | Name of the Docker container                                                                     | accept default                                                                                                                                                                                         |
+| docker_tag                                    | Tag for the Docker container                                                                     | If you are modifying the Docker image and have built a local image with **build-local.sh**, set *docker_tag=local*; otherwise, accept the default, which is name of the published image in Docker Hub. |
+| neo4j_password                                | Password for the neo4j user                                                                      | minimum of 8 characters, including at least one letter and one number                                                                                                                                  |
+| ui_port                                       | Port used by the neo4j browser                                                                   | number other than 7474 to prevent possible conflicts with local installations of neo4j                                                                                                                 |
+| bolt_port                                     | Port used by neo4j bolt (Cypher)                                                                 | number other than 7687 to prevent possible conflicts with local installations of neo4j                                                                                                                 |
+| read_mode                                     | Whether the neo4j database is *read-only* or *read-write*                                        | Because you will be writing to the database, set *read_mode=read-write*.                                                                                                                               |
+| db_mount_dir                                  | Path to the external neo4j database  (bind mount)                                                | accept default (/data)                                                                                                                                                                                 |
+| jkg_json_dir                                  | Path to the folder that contains the JKG JSON file                                               | accept default (/json)                                                                                                                                                                                 |
+| jkg_json_file                                 | File name of the JKG JSON file                                                                   | accept default                                                                                                                                                                                         |
+| jkg_schema_json                               | File name of the JKG Schema JSON                                                                 | accept default                                                                                                                                                                                         |
+| logging_path                                  | Path to the common _application log_ (not the neo4j logs)                                        | accept default                                                                                                                                                                                         |
+| jkg_batch_size                                | Number of nodes into which to divide the JKG JSON file for import                                | 1 million                                                                                                                                                                                              |
+| schema_validation_error_file                  | Name of the file that will contain errors from validation of the JKG JSON against the JKG Schema | accept default                                                                                                                                                                                         |
+| schema_validation_parallel                    | Whether to use parallel processing for schema validation                                         | true                                                                                                                                                                                                   |
+| parallel_chunk                                | Size of partition (chunk; number of nodes) for schema validation via parallel processing         | 1000                                                                                                                                                                                                   |
+| schema_validation_batch                       | Whether schema validation works with batched files (true) or the entire JKG JSON file (false)    | true                                                                                                                                                                                                   |
+| schema_validation_spot                        | Whether to do "spot-validation" of the schema using a random sample of batch JSON files          | true for debugging; false otherwise                                                                                                                                                                    |
+| num_spot_checks                               | If spot-validating, sample size (number of randomly-selected batch files)                        |                                                                                                                                                                                                        |
+| schema_validation_specific_batch_files        | list of file names of specific batch files to validate                                           | If debugging, a list of file names with extensions; nothing otherwise                                                                                                                                  |
+| check_uniqueness, check_referential_integrity | whether to perform structural validation                                                         | true                                                                                                                                                                                                   |
+| import_url_base                               | Path in the jkg-neo4j container containing JKG JSON files                                        | accept default, which points to the external volume                                                                                                                                                    |
+| import_rels                                   | Whether to import rels                                                                           | `false` only if debugging potential OOMEs from import                                                                                                                                                  |
 
 # Execute workflow
 ## The need for multiple Terminal sessions
@@ -140,10 +176,11 @@ The script's default values are:
 - *mode*: **external**.
 - c: **container.cfg**
 
-The **build_container.sh** will run for a short time (1-2 minutes), and will be finished when it displays a message similar to `[main] INFO org.eclipse.jetty.server.Server - Started Server@16fa5e34{STARTING}[10.0.15,sto=0] @11686ms`
+The **build_container.sh** will run for a short time (1-2 minutes), and will be finished when it displays a message similar to 
+`INFO  Started.`
+
 Because the script runs neo4j Console, you will not be able to execute additional CLI commands in the Terminal window.
 
-![img_6.png](../images/img_6.png)
 
 At this point, you should be able to open a browser and connect to the neo4j instance using the connection parameters 
 that you set in the configuration file. The instance will be empty.
@@ -163,87 +200,28 @@ The new container will have *external bind mounts* to the following directories:
 - **import**
 - **logs**
 
-## 4. TO DO CHANGE TO JKG JSON Copy CSVs to import external bind mount and import CSVs to data external bind mount.
+## 4. Import batched JKG JSON files.
 1. Return to the first Terminal session, which will now accept input. Because the execution of **build_container.sh** in the second Terminal session closed the original Docker container, you can now execute commands in this session.
-2. Execute `./import_csvs.sh`
+2. Execute `./import_jkg_json.sh`
 
-The **import_csvs.sh** script:
-- Copies the ontology CSVs from the folder specified by **csv_dir** in the config file to the new *import* bind mount directory.
-- Runs the **neo4j-admin import** utility to import the ontology CSVs into the neo4j database in the *data* bind mount directory.
-- Exports to the distribution source directory the **import.report** file generated by neo4j-admin import to track import issues.
+The **import_jkg_json.sh** script:
+- Copies the contents of the directory specified by the _jkg_json_dir_ key in **container.cfg** to the new *import* bind mount directory.
+- Imports the contents of the batch JKG JSON files into neo4j.
 
 ### Notes on the import script
-1. As described [here](https://docs.docker.com/storage/bind-mounts/#mount-into-a-non-empty-directory-on-the-container), a bind mount on a non-empty directory can result in Docker "obscuring" the files that were in the directory. This is the case for the *import* bind mount, but not for the *data* bind mount. For this reason, the script copies CSVs into the *import* bind mount after it is created.
-2. The script explicitly sets the maximum heap memory instead of relying on neo4j to allocate heap memory via heuristics. Without the explicit allocation, neo4j will overallocate the maximum heap memory, which results in memory swapping and slow imports. See [this Stack Overflow post](https://stackoverflow.com/questions/58808877/set-heap-memory-for-neo4j-admin-import?rq=2) for details. 
-3. The import will take some time--however, on the order of minutes, not hours.
+1. As described [here](https://docs.docker.com/storage/bind-mounts/#mount-into-a-non-empty-directory-on-the-container), a bind mount on a non-empty directory can result in Docker "obscuring" the files that were in the directory. This is the case for the *import* bind mount, but not for the *data* bind mount. For this reason, the script copies CSVs into the *import* bind mount after it is created. 
+2. The time to import a JKG JSON file will depend on the size of the source file. 
+3. The time to import a 4.4 GB JKG JSON (built from the 2025AB release of UMLS), using a MacOs M1 Max with 32 GB, is:
+   * nodes: < 3 minutes
+   * rels: < 11 minutes
+   * coderels: < 6 minutes
 
 ## 5. Rebuild Docker container with external bind mounts.
 Execute `./build_container.sh external`
-This will rebuild the Docker container with external bind mounts, including to the **data** directory that now contains a new neo4j database built from importing the ontology CSVs.
+This will rebuild the Docker container with external bind mounts, including to the **data** directory that now contains a new neo4j database built from importing the JKG JSON.
 
 At this point, you should be able to open a browser and connect to the neo4j instance using the connection parameters 
 that you set in the configuration file. The instance will contain the JKG nodes and edges, but without indexes or constraints.
-
-## 6. TO DO MAYBE NOT NECESSARY Create indexes and constraints.
-1. Switch to the second Terminal session, which will now accept input.
-2. Execute `./create_indexes_and_constraints.sh`
-
-### TO DO MAY NOT BE NECESSARY Memory considerations
-Both the asynchronous (native Cypher) and synchronous (Python) index architectures execute a series of Cypher commands
-that create relationship indexes on all relationships in the UBKG.
-
-In general, a JKG implementation will contain a large number of different 
-relationship types (e.g., 1800). The script will result in a significant
-processing load. Because index creation in neo4j is
-asynchronous by default, creating all indexes at once with
-asynchronous native Cypher commands results in a large number of parallel threads.
-
-If the JKG database is large, creating a large number of indexes asynchronously
-will likely result in a Java Out of Memory Error (OOME) by
-exceeding the Java max heap memory. This will be reflected in the **debug.log** of the neo4j
-instance (available in the **logs** external bind mount) with messages such as
-```
-2024-01-11 01:51:26.529+0000 ERROR [o.n.k.i.a.i.IndexPopulationJob] [neo4j/947a8a6c] Failed to populate index: [Index( id=1198, name='rSAB_coexpression_Colon___Transverse', type='RANGE', schema=()-[:coexpression_Colon___Transverse {SAB}]-(), indexProvider='range-1.0' )]
-java.lang.OutOfMemoryError: Java heap space
-```
-To mitigate the risk of OOMEs,
-a Python script (**create_indexes_and_constraints.py**) executes the
-index creation statements synchronously.
-
-Use the asynchronous option (**indexing=synchronous** in the configuration file) only if the 
-implementation of UBKG is relatively small (around 10 GB).
-
-### TO DO MAY NOT BE NECESSARY Filtering for relationship types
-The Cypher statments create relationship indexes for almost every type of relationship in the UBKG, 
-with the following exceptions that violate [neo4j naming rules](https://neo4j.com/docs/cypher-manual/current/syntax/naming/):
-- relationship types that contain special characters (except for underscore)
-- relationship types that begin with numbers
-
-
-To avoid excluding relationships from a relationship index, name relationships using only alphanumeric characters and underscores.
-The UBKG generation framework ETLs automatically reformats relationship names that violate neo4j naming rules.
-
-### TO DO MAY NOT BE NECESSARY Deletion of NOCODE codes
-The ontology CSVs from UMLS include 6 codes with CodeID of NOCODE, corresponding to Metathesaurus NOCODE codes
-that the UMLS defines for concepts that have no codes in any source vocabulary. Two of these NOCODE codes have thousands
-of relationships. The **create_constraints_and_node_indexes.cypher** deletes these codes via a call to APOC. These codes
-must be removed before indexes are created.
-
-
-### TO DO MAY NOT BE NECESSARY Monitoring index creation 
-#### General
-Because of the large number of relationship types in the UBKG, the creation of the 
-relationship indexes will take some time. Example generation times:
-
-#### in neo4j
-To monitor the progress of relationship index creation, you can execute the following Cypher statement:
-`SHOW INDEXES WHERE populationPercent < 100`.
-Index creation is complete when no indexes are returned.
-
-#### in the Python script
-The Python script displays progress indicators.
-
-**Wait until all indexes are created before moving to the next step in the workflow. If index creation is interrupted, the database can be corrupted.**
 
 ## 7. Build the distribution Zip.
 

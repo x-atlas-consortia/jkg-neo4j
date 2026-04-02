@@ -23,11 +23,14 @@
 // 2. Creates a relationship between the start and end nodes
 
 CALL apoc.periodic.iterate(
-    'CALL apoc.load.json($file) YIELD value UNWIND value.rels AS r RETURN r',
+    'CALL apoc.load.json($file) YIELD value
+     UNWIND value.rels AS r
+     RETURN r',
     'MATCH (start:Concept {id: r.start.properties.id})
-     MATCH (end:Term {id: r.end.properties.id})
-     CALL apoc.merge.relationship(start, r.label, {}, r.properties, end) YIELD rel RETURN rel',
-    {batchSize: 5000, parallel: false, params: {file: $file}}
+     MATCH (end:Term      {id: r.end.properties.id})
+     CALL apoc.create.relationship(start, r.label, r.properties, end) YIELD rel
+     RETURN rel',
+    {batchSize: 1000, parallel: false, params: {file: $file}}
 )
-YIELD batches, total, committedOperations
-RETURN batches, total, committedOperations
+YIELD batches, total, committedOperations, failedOperations, errorMessages
+RETURN batches, total, committedOperations, failedOperations, errorMessages
