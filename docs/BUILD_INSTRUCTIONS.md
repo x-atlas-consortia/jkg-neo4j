@@ -2,6 +2,9 @@
 
 # Instructions for building the Docker jkg-neo4j Distribution
 
+* TOC
+{:toc}
+
 Building a JKG neo4j distribution involves a complicated workflow that generates a
 neo4j database as an external bind mount for a Docker container that hosts
 an instance of neo4j.
@@ -24,9 +27,10 @@ will not be contained in the public Docker image. To acheive this objective, the
 - creates indexes and constraints in the JKG database
 - converts the primer database into a JKG database by importing a source JKG JSON into the primer
 
-The following image illustrates the workflow.
+The following image illustrates the workflow. 
+The steps of the workflow follow.
 
-![img_5.png](img_5.png)
+![img.png](img.png)
 # Prerequisites for building
 
 ## Set up host machine
@@ -207,6 +211,7 @@ The new container will have *external bind mounts* to the following directories:
 The **import_jkg_json.sh** script:
 - Copies the contents of the directory specified by the _jkg_json_dir_ key in **container.cfg** to the new *import* bind mount directory.
 - Imports the contents of the batch JKG JSON files into neo4j.
+- Builds constraints and indexes.
 
 ### Notes on the import script
 1. As described [here](https://docs.docker.com/storage/bind-mounts/#mount-into-a-non-empty-directory-on-the-container), a bind mount on a non-empty directory can result in Docker "obscuring" the files that were in the directory. This is the case for the *import* bind mount, but not for the *data* bind mount. For this reason, the script copies CSVs into the *import* bind mount after it is created. 
