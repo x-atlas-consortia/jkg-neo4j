@@ -10,6 +10,7 @@ ASSUMPTIONS:
 """
 
 import os
+import sys
 from pathlib import Path
 import time
 from tqdm import tqdm
@@ -171,3 +172,24 @@ class Neo4jApp:
                 time.sleep(2)
 
         raise TimeoutError("Constraints did not come online in time")
+
+    def create_relationship_indexes(self):
+
+        """
+        Creates relationship indexes.
+        """
+
+        self.clog.print_and_logger_info(f'Creating relationship indexes')
+
+        # Create a relationship index on the SAB property.
+        self._execute_write_query(cypherfile='create_r_sab_index.cypher')
+
+        # Create a relationship index on the codeid property.
+        self._execute_write_query(cypherfile='create_r_codeid_index.cypher')
+
+        while self._indexes_are_populating():
+            print('Indexes are populating...')
+            time.sleep(5)
+
+        print('All relationship indexes are complete.')
+

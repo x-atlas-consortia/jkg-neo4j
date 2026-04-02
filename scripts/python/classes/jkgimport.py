@@ -79,3 +79,4 @@ class JkgImport:
         if self.import_rels:
             neo4japp.execute_batched_write_query(type='rel')
             neo4japp.execute_batched_write_query(type='coderel')
+            neo4japp.create_relationship_indexes()
