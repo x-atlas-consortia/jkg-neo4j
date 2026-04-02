@@ -2,8 +2,6 @@
 
 # Instructions for building the Docker jkg-neo4j Distribution
 
-* TOC
-{:toc}
 
 Building a JKG neo4j distribution involves a complicated workflow that generates a
 neo4j database as an external bind mount for a Docker container that hosts
