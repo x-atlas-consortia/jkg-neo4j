@@ -213,8 +213,8 @@ The **import_jkg_json.sh** script:
 2. The time to import a JKG JSON file will depend on the size of the source file. 
 3. The time to import a 4.4 GB JKG JSON (built from the 2025AB release of UMLS), using a MacOs M1 Max with 32 GB, is:
    * nodes: < 3 minutes
-   * rels: < 11 minutes
-   * coderels: < 6 minutes
+   * rels: < 13 minutes
+   * coderels: < 10 minutes
 
 ## 5. Rebuild Docker container with external bind mounts.
 Execute `./build_container.sh external`

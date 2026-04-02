@@ -27,7 +27,7 @@ This deployment uses default settings.
 4. Open a Terminal session.
 5. Move to the distribution directory.
 6. Execute `./build_container.sh`.
-7. The **build_container.sh** will run for a short time (1-2 minutes), and will be finished when it displays a message similar to ```[main] INFO org.eclipse.jetty.server.Server - Started Server@16fa5e34{STARTING}[10.0.15,sto=0] @11686ms```
+7. The **build_container.sh** will run for a short time (1-2 minutes), and will be finished when it displays a message similar to ``INFO  Started.``
 
 ![img_6.png](../images/img_6.png)
 
