@@ -17,7 +17,7 @@ if [ "$1" == "-rv" ]
 then
   if [ ! "$2" == "" ]
   then
-    release_tags_args=(-t hubmap/jkg-neo4j:$2 -t hubmap/ubkg-neo4j:latest)
+    release_tags_args=(-t hubmap/jkg-neo4j:$2 -t hubmap/jkg-neo4j:latest)
   else
     echo "The -rv option must contain a version to tag the image as the next argument like: ./build-push-multi-arch.sh -rv 3.2.1"
     exit 1
