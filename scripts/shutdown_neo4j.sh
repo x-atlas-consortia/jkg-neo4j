@@ -1,7 +1,7 @@
 #!/bin/bash
 # -------------------------
-# Unified Biomedical Knowledge Graph (UBKG)
-# Shuts down the UBKG neo4j instance, waiting until all processes are complete.
+# JSON Knowledge Graph (JBKG)
+# Shuts down the JKG neo4j instance, waiting until all processes are complete.
 #
 
 
@@ -13,8 +13,8 @@ Help()
    # Display Help
    echo ""
    echo "****************************************"
-   echo "HELP: UBKG neo4j shutdown script"
-   echo "Shuts down an UBKG database in a neo4j instance hosted in a Docker container."
+   echo "HELP: JKG neo4j shutdown script"
+   echo "Shuts down a JKG database in a neo4j instance hosted in a Docker container."
    echo
    echo "Syntax: ./shutdown_neo4j.sh [-c config file]"
    echo "options (in any order)"
@@ -26,7 +26,7 @@ Help()
 ##############################
 # Set defaults.
 config_file="container.cfg"
-container_name="ubkg-neo4j"
+container_name="jkg-neo4j"
 neo4j_user="neo4j"
 
 # Default relative paths
