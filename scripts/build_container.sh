@@ -295,6 +295,3 @@ else
        "$docker_image_name" | grep --line-buffered -v "Bolt enabled on" | grep --line-buffered  -v "Remote interface available at"
 fi
 
-#grep -v commands above hide confusing messages coming from inside the container about
-#how to connect to Neo4j potentially only from inside the container if the port number
-#are not the defaults for the external mappings
