@@ -28,7 +28,7 @@ will not be contained in the public Docker image. To acheive this objective, the
 The following image illustrates the workflow. 
 The steps of the workflow follow.
 
-![img.png](img.png)
+![img_1.png](img_1.png)
 # Prerequisites for building
 
 ## Set up host machine
@@ -90,9 +90,9 @@ memory allocation, based on a partial import of just nodes. To import just the n
 set _import_rels_=false in **container.cfg**.
 Once the import completes, use **neo4j-admin server memory-recommendation** as described above.
 
-## Obtain source JKG JSON
+## Obtain JKG JSON file
 After generating a JSON that conforms to the JKG schema, copy the JKG JSON into a subdirectory of the application directory 
-named _/json_.
+named _/json_. 
 
 # jkg-neo4j Repository content
 ## docker directory
@@ -203,7 +203,9 @@ The new container will have *external bind mounts* to the following directories:
 - **logs**
 
 ## 4. Import batched JKG JSON files.
+The import script does not work with the entire JKG JSON file. JKG JSON must be divided into batch files by means of the **batch_jkg_json** script.
 1. Return to the first Terminal session, which will now accept input. Because the execution of **build_container.sh** in the second Terminal session closed the original Docker container, you can now execute commands in this session.
+2. Execute `./batch_jkg_json.sh`
 2. Execute `./import_jkg_json.sh`
 
 The **import_jkg_json.sh** script:
