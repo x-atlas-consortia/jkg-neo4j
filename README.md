@@ -83,7 +83,7 @@ Python scripts:
 
 With respect to relative file locations, tools assume that they are in a local application directory that contains a copy of the entire _scripts_ directory.
 
-# Build Workflow (Work in Progress)
-![img.png](img.png)
+# Workflows
+* [Build workflow](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/BUILD_INSTRUCTIONS.md)
+* [Deployment workflow](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/DEPLOYMENT_INSTRUCTIONS.md)
 
-# Deployment Workflow (Work in Progress)
