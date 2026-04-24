@@ -16,7 +16,7 @@ As described in the instructions on the site, you will need to provide a UMLS AP
 # Simple Deployment
 This deployment uses default settings. 
 
-![img_3.png](../images/img_3.png)
+![img_simple_deployment.png](./images/img_simple_deployment.png)
 
 1. Expand the Zip archive. The expanded distribution directory will contain:
    - a directory named **Data**. This directory contains the UBKG neo4j database files.
