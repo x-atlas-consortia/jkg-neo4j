@@ -99,10 +99,11 @@ class JKGValidate:
         self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
 
         # Validate JSON against schema.
-        self._validate_json_against_schema()
+        #self._validate_json_against_schema()
 
         if self.check_uniqueness | self.check_referential_integrity:
             # Parse JKG JSON.
+            self.clog.print_and_logger_info("Performing structural validation.")
             self._parse_jkg_json()
             self._validate_json_structurally()
 
@@ -119,6 +120,8 @@ class JKGValidate:
 
         # Load nodes and rels arrays from JKG JSON into Pandas.
         self._load_nodes_rels_dataframe()
+
+        self._validate_nodes_gross_structure()
 
         if self.check_uniqueness:
             # Validate node uniqueness.
@@ -238,6 +241,47 @@ class JKGValidate:
 
             for i, chunk in enumerate(tqdm(chunks, desc="Writing issues")):
                 chunk.to_csv(issuefile, mode='w', index=False, header=(i == 0))
+
+
+    def _validate_nodes_gross_structure(self):
+        """
+        Performs gross structural checks of nodes array.
+
+        Fine structural validation (uniqueness and referential integrity) assume that
+        the source file contains:
+        1. a nodes array, with nodes of all of the types (Source, Term, etc.)
+        2. a rels array with CODE and non-CODE elements.
+
+        Gross structural issues are fatal errors with respect to fine structural validation.
+
+        :return:
+        """
+
+        # Verify that there is a nodes array.
+        if self.nodes.empty:
+            self.clog.print_and_logger_error(f'Structural error: {self.jkg_json_file} does not contain a nodes array.')
+            exit(1)
+
+        # Verify that there is a rels array.
+        if self.rels.empty:
+            self.clog.print_and_logger_error(f'Structural error: {self.jkg_json_file} does not contain a rels array.')
+            exit(1)
+
+        # Verify that there are nodes for each of the label types:
+        node_labels = ['Source', 'Node_Label', 'Rel_Label', 'Term', 'Concept']
+        for node_label in node_labels:
+
+            fdf = self.nodes[self.nodes['labels'].apply(lambda x: node_label in x)]
+            if fdf.empty:
+                self.clog.print_and_logger_error(f'Structural error: {self.jkg_json_file} does not contain nodes of type {node_label}.')
+                exit(1)
+
+        # Verify that there are coderels.
+        fdf = self.rels[self.rels['label'].apply(lambda x: 'CODE' in x)]
+        if fdf.empty:
+            self.clog.print_and_logger_error(
+                f'Structural error: {self.jkg_json_file} does not contain rels of type CODE.')
+            exit(1)
 
     def _validate_nodes_for_uniqueness(self):
 
