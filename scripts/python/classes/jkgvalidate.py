@@ -133,7 +133,7 @@ class JKGValidate:
         Parse JKG JSON file.
         """
 
-        self.clog.print_and_logger_warning("Historical time to parse JKG.JSON: < 6 minutes.")
+        self.clog.print_and_logger_warning("Historical time to parse ~5 GB JKG.JSON: < 6 minutes.")
         self.JKG = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_json_file)
 
     def _load_json(self, dir: str, filename: str) -> dict | list:
@@ -418,6 +418,7 @@ class JKGValidate:
         if self.parallel:
             # Validate entire JKG JSON using parallel processing.
             filepath = Path(os.path.join(self.jkg_json_dir, self.jkg_json_file))
+            self.clog.print_and_logger_info('This requires two passes through the source file--once for the nodes array, and once for the rels array.')
             self._validate_parallel(arraykey='nodes', filepath=filepath)
             self._validate_parallel(arraykey='rels', filepath=filepath)
         else:
@@ -517,7 +518,7 @@ class JKGValidate:
 
         """
 
-        self.clog.print_and_logger_info(f'Validating {filepath.name} against JKG schema with parallel processing.')
+        self.clog.print_and_logger_info(f'Validating {arraykey} array of {filepath.name} against JKG schema with parallel processing.')
         self.clog.print_and_logger_info(
             f"Parallel processing chunk size = {self.validate_chuck_size}.")
 
