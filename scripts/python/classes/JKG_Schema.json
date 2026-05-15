@@ -10,7 +10,7 @@
         "nodes" : {
             "type" : "array",
             "description" : "The list of nodes in the knowledge graph",
-            "uniqueItems": true,
+            "uniqueItems": false,
             "additionalItems": true,
             "items": {
                 "type": "object",
@@ -21,7 +21,7 @@
                     "labels" : {
                         "type": "array",
                         "description": "A node type label is one of Source, Node_Label, Rel_Label, Term, or Concept. If the type is Concept, the labels list may also include other strings as node labels. It is recommended, but not enforced, that each are declared as a Node_Label semantic type label.",
-                        "uniqueItems": true,
+                        "uniqueItems": false,
                         "additionalItems": false,
                         "contains": {
                             "enum" : [ "Source", "Node_Label", "Rel_Label", "Term", "Concept" ]
@@ -199,7 +199,7 @@
         "rels" : {
             "type" : "array",
             "description" : "The list of relationships in the knowledge graph",
-            "uniqueItems": true,
+            "uniqueItems": false,
             "items": {
                 "type": "object",
                 "description": "A relationship in the knowledge graph",
@@ -224,7 +224,7 @@
                                 "properties" : {
                                     "id" : {
                                         "type" : "string",
-                                        "pattern" : "^[a-zA-Z0-9\\._-]+:[a-zA-Z0-9\\._-]+$",
+                                        "pattern": "^[A-Za-z0-9._-]+:[A-Za-z0-9._-]+(?: CUI)?$",
                                         "$comment" : "regex for a CURIE-like pattern",
                                         "description" : "This is the id (CURIE) of the subject node of the relationship."
                                     }
@@ -264,8 +264,8 @@
                             },
                             "codeid" : {
                                 "type" : "string",
-                                "pattern" : "^[a-zA-Z0-9\\._-]+:[a-zA-Z0-9\\._-]+$",
-                                "description" : "This is a CURIE-like pattern for a Code from a Source as sab:code, typiclly a equivalence class of the Concept node id (dbxref) when relationship type label is CODE."
+                                "pattern": "^[A-Za-z0-9._-]+:[A-Za-z0-9._-]+(?: CUI)?$",
+                                "description" : "This is a CURIE-like pattern for a Code from a Source as sab:code, typically an equivalence class of the Concept node id (dbxref) when relationship type label is CODE."
                             },
                             "tty" : {
                                 "type" : "string",
@@ -343,7 +343,7 @@
                                     "properties" : {
                                         "id" : {
                                             "type" : "string",
-                                            "pattern" : "^[a-zA-Z0-9\\._-]+:[a-zA-Z0-9\\._-]+$",
+                                            "pattern": "^[A-Za-z0-9._-]+:[A-Za-z0-9._-]+(?: CUI)?$",
                                             "description" : "This is the id (CURIE when not CODE relationship) of the object node of the relationship."
                                         }
                                     }
