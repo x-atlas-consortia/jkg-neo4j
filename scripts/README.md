@@ -58,8 +58,12 @@ Validates a JSON file in JSON Knowledge Graph (JKG) format.
 **validate_jkg_json** can perform two types of validation:
 1. **Schema validation** against the [JKG Schema](https://github.com/x-atlas-consortia/json-knowledge-graph/blob/main/JKG_Schema.json), using the [jsonschema](https://python-jsonschema.readthedocs.io/en/latest/) package.
 2. **Structural validation**:
-   * checks for duplicate nodes
-   * checks for "referential integrity"--e.g., that node identifiers in the **rels** array have corresponding elements in the **nodes** array; etc.
+   * gross structural validation that confirms existence of:
+      * nodes and rels arrays
+      * nodes for all types (Source, Node_Label, Rel_Label, Term, Concept)
+   * fine structural validation:
+      * checks for duplicate nodes
+      * checks for "referential integrity"--e.g., that node identifiers in the **rels** array have corresponding elements in the **nodes** array; etc.
 
 ## Validation options
 Both the types and scope of validation can be controlled by setting 

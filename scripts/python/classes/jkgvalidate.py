@@ -99,7 +99,7 @@ class JKGValidate:
         self.JKG_Schema = self._load_json(dir=self.jkg_json_dir, filename=self.jkg_schema_json)
 
         # Validate JSON against schema.
-        #self._validate_json_against_schema()
+        self._validate_json_against_schema()
 
         if self.check_uniqueness | self.check_referential_integrity:
             # Parse JKG JSON.
