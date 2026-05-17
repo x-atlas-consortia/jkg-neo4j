@@ -6,7 +6,7 @@ imported from a file that conforms to the [JSON Knowledge Graph (JKG)](https://g
 
 ## JKG format
 The JKG format is intended to support platform-agnostic transfers of
-knowledge graphs. A file that conforms to the JKG JSON schema is called a JKG JSON file.
+knowledge graphs. A file that conforms to the [JKG JSON schema](https://github.com/x-atlas-consortia/json-knowledge-graph) is called a **JKG JSON** file.
 
 It should be possible:
 + to import data from a JKG JSON file into a graph database
@@ -33,8 +33,9 @@ The **jkg-neo4j** architecture comprises:
 * a Docker Compose configuration
 * a suite of custom Shell and Python scripts
 
-The architecture supports both building a turnkey distribution from source and installing the 
-distribution locally.
+The architecture supports:
+* [building](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/BUILD_INSTRUCTIONS.md) a turnkey distribution from source 
+* [deploying](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/DEPLOYMENT_INSTRUCTIONS.md) the turnkey distribution locally.
 
 # Tool patterns
 ## Separation of concerns
@@ -52,6 +53,9 @@ distribution locally.
 ## Components
 
 ## Script components
+
+Detailed documentation on script components can be found in the [scripts](https://github.com/x-atlas-consortia/jkg-neo4j/tree/main/scripts) directory.
+
 * Each tool comprises two types of scripts:
   * a [Bash](https://en.wikipedia.org/wiki/Bash_(Unix_shell)) script that:
     * verifies configuration specific to the tool
@@ -82,8 +86,4 @@ Python scripts:
 * Common Python classes are in the _scripts/python/classes_ path.
 
 With respect to relative file locations, tools assume that they are in a local application directory that contains a copy of the entire _scripts_ directory.
-
-# Workflows
-* [Build workflow](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/BUILD_INSTRUCTIONS.md)
-* [Deployment workflow](https://github.com/x-atlas-consortia/jkg-neo4j/blob/main/docs/DEPLOYMENT_INSTRUCTIONS.md)
 

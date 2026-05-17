@@ -2,10 +2,12 @@
 ## Tools 
 
 For an explanation of tool patterns, including file structure of source files, 
-consult the main README.md.
+consult the main [README.md.](https://github.com/x-atlas-consortia/jkg-neo4j)
 
 All tools work with a common configuation file named **container.cfg**. 
 The file **container.cfg.example** in this repo serves as a template for **container.cfg**.
+
+---
 
 # batch_jkg_json
 ## Purpose
@@ -44,6 +46,8 @@ For example, the file `JKG_Batch_node_0009.JSON` identifies the
 
 The number of objects in an array of a batch file will be up to the batch size specified in the common
 **container.cfg** file.
+
+---
 
 # validate_jkg_json
 
@@ -196,6 +200,8 @@ will display a timer that updates every 5 seconds.
 For long-running processes, the script will display an estimate of the time
 that the process will require, based on working with similar files in the past.
 
+---
+
 # import_jkg_json
 ## Purpose
 Imports the set of batched JKG JSON files into the neo4j instance hosted by the jkg-neo4j Docker container.
@@ -229,12 +235,13 @@ Because the docker host mounts an external volume, the file location for neo4j i
 For example, if the external volume is in a _json/batch_ directory, the value of 
 _import_url_base_ in **container.cfg** should be _file:///usr/src/app/neo4j/import/json/batch/_.
 
-
 ## Assumptions
 1. The JKG JSON source has been both
    * validated against the JKG Schema
    * batch distributed
 2. The **build_container** and **export_bind_mount** scripts have been run to build a Docker neo4j host with external volumes.
+
+---
 
 # build_container
 ## Purpose
@@ -256,6 +263,8 @@ Exports the database of the containerized neo4j instance to an external volume.
 ## Component
 * **export_bind_mounth.sh**: Bash script
 
+---
+
 # shutdown_neo4j
 ## Purpose
 Shuts down the containerized neo4j instance gracefully within the Docker container. 
@@ -263,6 +272,8 @@ Controlled, explicit shutdown allows the neo4j instance to clean up and close fi
 "code 137" process errors in Docker.
 ## Component
 * **shutdown_neo4j.sh**: Bash script
+
+---
 
 # build_distribution_zip
 ## Purpose

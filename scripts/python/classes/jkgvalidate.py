@@ -520,6 +520,7 @@ class JKGValidate:
             files_to_validate = all_files
 
         for filepath in files_to_validate:
+
             if filepath.is_file():
                 # Get the type from the file name.
                 if '_node' in filepath.name:
@@ -532,7 +533,6 @@ class JKGValidate:
                 else:
                     batch_dir = os.path.join(self.jkg_json_dir, 'batch')
                     self._validate_single(dir=batch_dir, filename=filepath.name)
-
 
     def _validate_single(self, dir: str, filename: str):
 
