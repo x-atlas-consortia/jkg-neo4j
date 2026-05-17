@@ -56,7 +56,7 @@ class JKGBatch:
                         batch_progress.close()
 
                     # Start a new batch file.
-                    batch_file = 'JKG_Batch_' + 'nodes' + str(int(i / self.jkg_batch_size)).zfill(5) + '.json'
+                    batch_file = 'JKG_Batch_' + 'node' + str(int(i / self.jkg_batch_size)).zfill(5) + '.json'
                     batch_path = os.path.join(self.jkg_json_dir,'batch',batch_file)
 
                     # Start the nodes array that will contain the batch of nodes.
