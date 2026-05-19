@@ -60,7 +60,7 @@ class Neo4jApp:
         f.close()
         return query
 
-    def _indexes_are_populating(self) -> bool:
+    def _indexes_are_populating(self) -> str:
         """
         Determines whether any indexes are still populating.
 
@@ -73,7 +73,7 @@ class Neo4jApp:
         with self.driver.session() as session:
             recds: neo4j.Result = session.run(query)
             for record in recds:
-                return record['number_populating'] > 0
+                return record['number_populating']
 
     def execute_batched_write_query(self, type: str) -> None:
         """
@@ -187,8 +187,8 @@ class Neo4jApp:
         # Create a relationship index on the codeid property.
         self._execute_write_query(cypherfile='create_r_codeid_index.cypher')
 
-        while self._indexes_are_populating():
-            print('Indexes are populating...')
+        while int(self._indexes_are_populating()) > 0:
+            print(f'{self._indexes_are_populating()} indexes are still populating...')
             time.sleep(5)
 
         print('All relationship indexes are complete.')
