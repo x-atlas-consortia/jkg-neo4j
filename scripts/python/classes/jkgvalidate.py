@@ -190,29 +190,28 @@ class JKGValidate:
         nodes = pd.DataFrame(self.JKG['nodes'])
         jtimer.stop()
 
-        #df = pd.json_normalize(rels)
         # Normalize the JSON arrays to flat tables.
-
-        self.clog.print_and_logger_warning("Historical time to normalize rels start: < 2 minutes.")
-        jtimer = JkgTimer(display_msg=f"Normalizing rels start")
+        self.clog.print_and_logger_warning("Flattening objects.")
+        self.clog.print_and_logger_warning("Historical time to flatten rels start: < 2 minutes.")
+        jtimer = JkgTimer(display_msg=f"Flattening rels start")
         self.starts = pd.json_normalize(rels.start)
         jtimer.stop()
 
-        self.clog.print_and_logger_warning("Historical time to normalize rels end: < 2 minutes.")
-        jtimer = JkgTimer(display_msg=f"Normalizing rels end")
+        self.clog.print_and_logger_warning("Historical time to flatten rels end: < 2 minutes.")
+        jtimer = JkgTimer(display_msg=f"Flattening rels end")
         self.ends = pd.json_normalize(rels.end)
         jtimer.stop()
 
-        self.clog.print_and_logger_warning("Historical time to normalize rels properties: < 2 minutes.")
-        jtimer = JkgTimer(display_msg=f"Normalizing rels properties")
+        self.clog.print_and_logger_warning("Historical time to flatten rels properties: < 2 minutes.")
+        jtimer = JkgTimer(display_msg=f"Flattening rels properties")
         df = pd.json_normalize(rels.properties)
         jtimer.stop()
 
         df = pd.concat([rels.label.reset_index(drop=True), df.reset_index(drop=True)], axis=1)
         self.rels = df
 
-        self.clog.print_and_logger_warning("Historical time to normalize nodes properties: < 1 minute.")
-        jtimer = JkgTimer(display_msg=f"Normalizing nodes properties")
+        self.clog.print_and_logger_warning("Historical time to flattening nodes properties: < 1 minute.")
+        jtimer = JkgTimer(display_msg=f"Flattening nodes properties")
         df = pd.json_normalize(nodes.properties)
         jtimer.stop()
 
@@ -296,7 +295,7 @@ class JKGValidate:
         duplicates = self.nodes[self.nodes.duplicated(subset=['id'], keep=False)]
         self._log_issue(issue_frame=duplicates,
                         noerrmsg='All node ids are unique.',
-                        filename='duplicate_node_sab.csv')
+                        filename='duplicate_node_id.csv')
 
         # Subset nodes to Source and Check duplicate sab
         fdf = self.nodes[self.nodes['labels'].apply(lambda x: 'Source' in x)]
@@ -324,57 +323,90 @@ class JKGValidate:
         Validates nodes and rels for referential integrity.
         :return:
         """
-        # Check if all values in list_a are in list_b
+        # General format of test: if all values in list_a are in list_b
         # missing_values = list_a[~list_a.isin(list_b)]
 
         self.clog.print_and_logger_info("Validating referential integrity.")
 
-        # Reports Node sab NOT in Source sab list
+        self.clog.print_and_logger_info(
+            'Verifying whether node objects specify SABs that are in the set of SABs specified by Source nodes.')
+        # Report Node sabs NOT in Source sab list
+        # Identify all Source nodes.
         fdf = self.nodes[self.nodes['labels'].apply(lambda x: 'Source' in x)]
+        # Identify the set of SABs specified in the Source nodes.
         u_sab = pd.Series(fdf['sab'])
-        nodes_sab = pd.Series(self.nodes['sab'].unique()).dropna()  # drop NaN because Term nodes have no sab
+        # Identify the SABs specified in all node objects.
+        # Drop NaNs because Term nodes do not have a sab property.
+        nodes_sab = pd.Series(self.nodes['sab'].unique()).dropna()
+        # Find any SABs specified in nodes that are not in the list of SABs specified
+        # in Source nodes.
         missing_values = nodes_sab[~nodes_sab.isin(u_sab)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Node sabs are present in Source sabs.',
+                          noerrmsg='Node objects specify SABs that are in Source node objects.',
                           filename='missing_node_sab.csv')
 
-        # Reports Rel sab NOT in Source sab list - uses Source sab list u_sab from above
+
+        # Reports Rel sabs NOT in Source sab list.
+        self.clog.print_and_logger_info(
+            'Verifying whether rel objects specify SABs that are in the set of SABs specified by Source nodes.')
+        # Identify SABs specified in all rel objects.
         rels_sab = pd.Series(self.rels['sab'].unique())
+        # Use the Source sab list u_sab from above.
+        # Find any SABs specified in rels that are not in the list of SABs specified
+        # in Source objects.
         missing_values = rels_sab[~rels_sab.isin(u_sab)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Rel sabs are present in Source sabs.',
+                          noerrmsg='Rel objects specify SABs that in Source node objects.',
                           filename='missing_rel_sab.csv')
 
-        # Reports Concept other Labels NOT in node_label list with Concept added
+        # Reports Concept other Labels NOT in node_label list with Concept added.
+        self.clog.print_and_logger_info(
+            'Verifying whether labels for Concept objects are in the set of Node_Label node objects.')
+        # Identify Concept node objects.
         fdf = self.nodes[self.nodes['labels'].apply(lambda x: 'Concept' in x)]
+        # Get all node labels other than Concept used in node objects--
+        # e.g., if "labels": ["Concept", "Amino Acid, Peptide, or Protein", "Pharmacologic Substance"], then
+        # "Amino Acid, Peptide, or Protein", "Pharmacologic Substance".
         u_labels = pd.Series(fdf['labels'].explode().unique())
+        # Identify all values for Node_Label node objects.
         node_labels_concept = pd.concat([self.nodes.node_label, pd.Series(['Concept'])], ignore_index=True)
+        # Find any values of Node_Label node objects that are not in the list of node labels used in Concept node objects.
         missing_values = u_labels[~u_labels.isin(node_labels_concept)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Concept Labels are present in node_label.',
+                          noerrmsg='All Concept Labels have corresponding Node_Label node objects.',
                           filename='missing_concept_label.csv')
 
-        # Reports Rel label NOT in rel_label list with CODE added
-        rel_labels_CODE = pd.concat([self.nodes.rel_label, pd.Series(['CODE'])], ignore_index=True)
+        # Reports Rel label NOT in rel_label list.
+        self.clog.print_and_logger_info(
+            'Verifying whether labels for rel objects are in the set of Rel_Label node objects.')
+        # Identify all values used in Rel_Label node objects.
+        rel_labels = self.nodes[self.nodes['rel_label']!='']['rel_label'].unique()
+        # Identify the unique values used in the label property of rels objects.
         u_labels = pd.Series(self.rels['label'].unique())
-        missing_values = u_labels[~u_labels.isin(rel_labels_CODE)]
+        # Find values used in the label property that are not in the set of
+        # values used in Rel_Label node objects.
+        missing_values = u_labels[~u_labels.isin(rel_labels)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Rel labels are present in rel_label.',
+                          noerrmsg='All labels for rel objects have corresponding Rel_Label node objects.',
                           filename='missing_rel_label.csv')
 
         # Reports start property.id of rels in node id list
+        self.clog.print_and_logger_info(
+            'Verifying whether start objects of rels are in the set of node objects')
         u_labels = self.starts['properties.id']
         missing_values = u_labels[~u_labels.isin(self.nodes.id)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Rel start id are present in node id.',
+                          noerrmsg='All rel start objects have corresponding node objects.',
                           filename='missing_rel_start.csv')
 
         # Reports end property.id of rels in node id list
+        self.clog.print_and_logger_info(
+            'Verifying whether end objects of rels are in the set of node objects')
         u_labels = self.ends['properties.id']
         missing_values = u_labels[~u_labels.isin(self.nodes.id)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Rel end id are present in node id.',
-                          filename='missing_rel_end.csv')
+                        noerrmsg='All rel end objects have corresponding node objects.',
+                        filename='missing_rel_end.csv')
 
     def _format_validation_error(self, error, items: list) -> str:
 
