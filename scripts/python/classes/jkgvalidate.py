@@ -342,7 +342,7 @@ class JKGValidate:
         # in Source nodes.
         missing_values = nodes_sab[~nodes_sab.isin(u_sab)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='Node objects specify SABs that are in Source node objects.',
+                          noerrmsg='--Node objects specify SABs that are in Source node objects.',
                           filename='missing_node_sab.csv')
 
 
@@ -356,7 +356,7 @@ class JKGValidate:
         # in Source objects.
         missing_values = rels_sab[~rels_sab.isin(u_sab)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='Rel objects specify SABs that in Source node objects.',
+                          noerrmsg='--Rel objects specify SABs that in Source node objects.',
                           filename='missing_rel_sab.csv')
 
         # Reports Concept other Labels NOT in node_label list with Concept added.
@@ -373,7 +373,7 @@ class JKGValidate:
         # Find any values of Node_Label node objects that are not in the list of node labels used in Concept node objects.
         missing_values = u_labels[~u_labels.isin(node_labels_concept)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All Concept Labels have corresponding Node_Label node objects.',
+                          noerrmsg='--All Concept Labels have corresponding Node_Label node objects.',
                           filename='missing_concept_label.csv')
 
         # Reports Rel label NOT in rel_label list.
@@ -387,7 +387,7 @@ class JKGValidate:
         # values used in Rel_Label node objects.
         missing_values = u_labels[~u_labels.isin(rel_labels)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All labels for rel objects have corresponding Rel_Label node objects.',
+                          noerrmsg='--All labels for rel objects have corresponding Rel_Label node objects.',
                           filename='missing_rel_label.csv')
 
         # Reports start property.id of rels in node id list
@@ -396,16 +396,16 @@ class JKGValidate:
         u_labels = self.starts['properties.id']
         missing_values = u_labels[~u_labels.isin(self.nodes.id)]
         self._log_issue(issue_frame=missing_values,
-                          noerrmsg='All rel start objects have corresponding node objects.',
+                          noerrmsg='--All rel start objects have corresponding node objects.',
                           filename='missing_rel_start.csv')
 
         # Reports end property.id of rels in node id list
         self.clog.print_and_logger_info(
-            'Verifying whether end objects of rels are in the set of node objects')
+            'Verifying whether end objects of rels are in the set of node objects.')
         u_labels = self.ends['properties.id']
         missing_values = u_labels[~u_labels.isin(self.nodes.id)]
         self._log_issue(issue_frame=missing_values,
-                        noerrmsg='All rel end objects have corresponding node objects.',
+                        noerrmsg='--All rel end objects have corresponding node objects.',
                         filename='missing_rel_end.csv')
 
     def _format_validation_error(self, error, items: list) -> str:

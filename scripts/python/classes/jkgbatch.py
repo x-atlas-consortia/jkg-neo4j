@@ -15,10 +15,16 @@ import os
 import shutil
 from tqdm import tqdm
 import io
+from decimal import Decimal
 
 from .centrallog import CentralLog
 
 class JKGBatch:
+
+    def decimal_serializer(self,obj):
+        if isinstance(obj, Decimal):
+            return str(obj)
+        raise TypeError("Type not serializable")
 
     def _mkdir_clean(self, path: str):
         """
@@ -77,7 +83,7 @@ class JKGBatch:
                     file.write('\n,')
 
                 # Write the node object to the nodes array in the batch file.
-                file.write(json.dumps(item))
+                file.write(json.dumps(item, default=self.decimal_serializer))
                 batch_progress.update(1)
 
                 if (i % self.jkg_batch_size) == (self.jkg_batch_size - 1):
@@ -173,12 +179,12 @@ class JKGBatch:
                 if item['label'] == 'CODE':
                     if not first_coderel:
                         crfile.write('\n,')
-                    crfile.write(json.dumps(item))
+                    crfile.write(json.dumps(item,default=self.decimal_serializer))
                     first_coderel = False
                 else:
                     if not first_rel:
                         rfile.write('\n,')
-                    rfile.write(json.dumps(item))
+                    rfile.write(json.dumps(item, default=self.decimal_serializer))
                     first_rel = False
 
                 batch_progress.update(1)
