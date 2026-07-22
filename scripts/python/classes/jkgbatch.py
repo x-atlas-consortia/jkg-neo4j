@@ -23,7 +23,8 @@ class JKGBatch:
 
     def decimal_serializer(self,obj):
         if isinstance(obj, Decimal):
-            return str(obj)
+            #return str(obj)
+            return int(obj)
         raise TypeError("Type not serializable")
 
     def _mkdir_clean(self, path: str):
