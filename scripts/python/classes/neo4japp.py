@@ -42,7 +42,10 @@ class Neo4jApp:
         uri = f'bolt://localhost:{bolt_port}'
         auth = ("neo4j", neo4j_pasword)
 
-        self.driver = neo4j.GraphDatabase.driver(uri, auth=auth)
+        self.driver = neo4j.GraphDatabase.driver(uri, auth=auth,
+                                                 connection_acquisition_timeout=600,
+                                                 connection_timeout=600,
+                                                 max_transaction_retry_time=600)
 
         # Get the base of URLs to pass to apoc.loadjson to load the batched
         # JKG JSON files.

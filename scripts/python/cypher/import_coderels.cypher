@@ -30,7 +30,7 @@ CALL apoc.periodic.iterate(
      MATCH (end:Term      {id: r.end.properties.id})
      CALL apoc.create.relationship(start, r.label, r.properties, end) YIELD rel
      RETURN rel',
-    {batchSize: 1000, parallel: false, params: {file: $file}}
+    {batchSize: 500, parallel: false, params: {file: $file}}
 )
 YIELD batches, total, committedOperations, failedOperations, errorMessages
 RETURN batches, total, committedOperations, failedOperations, errorMessages
