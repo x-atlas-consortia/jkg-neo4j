@@ -40,6 +40,12 @@ The host machine's specifications include:
 - git installed
 - a git clone of the **jkg-neo4j** repository
 
+### Docker Desktop memory settings
+To support import of the JKG JSON files, the memory limit for Docker Desktop should be as large as possible. 
+To increase the available memory for Docker Desktop,
+- Select Settings from the top menu.
+- Select Resources.
+- Set the Resources Allocation Memory Limit to 8 GB below the machine's memory--e.g., 24 GB for a 32 GB machine.
 ### Python
 The workflow includes execution of the Python script **import_jkg_json.py** that imports data from a JKG JSON file into the neo4j instance.
 
