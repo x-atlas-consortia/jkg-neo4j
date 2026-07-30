@@ -290,3 +290,12 @@ rels in a specified JKG instance of neo4j.
 * **compare_jkgen_jkg.sh**: Bash script
 * **run_python_venv_sablist.sh**: Bash helper script
 * **compare_jkgen_jkg.py**: Python script
+## Dependencies
+The tool assumes that it is running in a common ubkg-jkg environment. 
+### classes from ubkg-jkg-generation
+Unlike the other tools in the jkg-neo4j repo, **compare_jkgen_jkg** must locate 
+and load JKGEN files. The script imports utility classes that are stored in the [ubkg-jkg-generation](https://github.com/x-atlas-consortia/ubkg-jkg-generation/tree/main/generation_framework/utilities) repo, including:
+* ubkg_args
+* 
+
+The shared utility classes are not duplicated in the jkg-neo4j repo.

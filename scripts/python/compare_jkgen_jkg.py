@@ -24,6 +24,26 @@ from classes.jkgen_jkg_compare import JkgenCompare
 # Central logging object
 from classes.centrallog import CentralLog
 
+import argparse
+# argparser
+from classes.ubkg_args import RawTextArgumentDefaultsHelpFormatter
+
+def get_args() -> argparse.Namespace:
+    """
+    Obtains command line arguments.
+    :return: parsed command line arguments
+    """
+    parser = argparse.ArgumentParser(
+        description='Compare the JKGEN files of a SAB against a JKG instance',
+        formatter_class=RawTextArgumentDefaultsHelpFormatter)
+
+    # Multiple SABs can be ingested as a space-delimited list.
+    parser.add_argument('sabs', nargs='*', help='space-delimited list of SABs')
+
+    args = parser.parse_args()
+
+    return args
+
 def main():
 
     # Get configuration information.
@@ -31,19 +51,22 @@ def main():
     cfgfile = os.path.join(os.getcwd(), 'container.cfg')
     cfgobj = ConfigFile(filename=cfgfile)
 
+    # Get the SABs to compare.
+    args = get_args()
+
     # Set up central logging.
     log_dir = cfgobj.config.get('log_dir')
-    log_file = 'import_jkg_json.log'
+    log_file = 'compare_jkged_jkg.log'
     clog = CentralLog(log_dir=log_dir, log_file=log_file)
     clog.print_and_logger_info('********')
-    clog.print_and_logger_error('import JKG JSON Script')
-    clog.print_and_logger_error('*******')
+    clog.print_and_logger_error('Script to compare JKGEN and JKG')
+    clog.print_and_logger_error(f'SABs: {",".join(args.sabs)}')
 
     # Get the path to the JKG JSON source file.
     jkg_json_dir =  cfgobj.config.get('jkg_json_dir')
 
     # Import the batch files.
-    jkgimport = JkgenCompare(clog=clog, cfg=cfgobj)
+    jkgimport = JkgenCompare(clog=clog, cfg=cfgobj, sabs=args.sabs)
 
 if __name__ == "__main__":
     main()
