@@ -281,3 +281,12 @@ Builds a Zip archive that contains the minimal set of files necessary to start a
 ## Component
 * **build_distribution_zip.sh*: Bash script
 
+---
+# compare_jkg_json
+## Purpose
+Compares the JKGEN source files for a specified SAB against corresponding nodes and 
+rels in a specified JKG instance of neo4j.
+## Components
+* **compare_jkgen_jkg.sh**: Bash script
+* **run_python_venv_sablist.sh**: Bash helper script
+* **compare_jkgen_jkg.py**: Python script
