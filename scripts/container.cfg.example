@@ -71,3 +71,7 @@ import_url_base=file:///usr/src/app/neo4j/import/json/batch/
 # Whether to import rels and coderels. This is primarily for debugging memory issues.
 import_rels=true
 
+# JKGEN PATH
+# Root path for JKGEN files. Each ingested SAB has a subdirectory in the root path.
+jkgen_path=/Users/jas971/pycharmprojects/ubkg-jkg-generation/generation_framework/sab_jkg
+
