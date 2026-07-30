@@ -286,6 +286,9 @@ Builds a Zip archive that contains the minimal set of files necessary to start a
 ## Purpose
 Compares the JKGEN source files for a specified SAB against corresponding nodes and 
 rels in a specified JKG instance of neo4j.
+## Outputs
+* **jkg_edge_comparison.tsv**: comparison of JKGEN edges against neo4j
+* **jkg_node_comparison.tsv
 ## Components
 * **compare_jkgen_jkg.sh**: Bash script
 * **run_python_venv_sablist.sh**: Bash helper script
@@ -296,6 +299,5 @@ The tool assumes that it is running in a common ubkg-jkg environment.
 Unlike the other tools in the jkg-neo4j repo, **compare_jkgen_jkg** must locate 
 and load JKGEN files. The script imports utility classes that are stored in the [ubkg-jkg-generation](https://github.com/x-atlas-consortia/ubkg-jkg-generation/tree/main/generation_framework/utilities) repo, including:
 * ubkg_args
-* 
 
 The shared utility classes are not duplicated in the jkg-neo4j repo.
