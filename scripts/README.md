@@ -287,8 +287,13 @@ Builds a Zip archive that contains the minimal set of files necessary to start a
 Compares the JKGEN source files for a specified SAB against corresponding nodes and 
 rels in a specified JKG instance of neo4j.
 ## Outputs
-* **jkg_edge_comparison.tsv**: comparison of JKGEN edges against neo4j
-* **jkg_node_comparison.tsv
+### Edge comparisons
+These should both be empty.
+* **jkgen_edge_not_in_jkg_rel.tsv** - edges in the JKGEN edge file that do not have corresponding paths in the JKG
+* **jkg_rel_not_in_jkgen_edge.tsv** - assertions in the JKG that are not represented in the JKGEN edge file.
+### Node comparisons
+* **node_comparison.tsv** - comparison of code to concept assignments between the node file and the corresponding JKG
+
 ## Components
 * **compare_jkgen_jkg.sh**: Bash script
 * **run_python_venv_sablist.sh**: Bash helper script

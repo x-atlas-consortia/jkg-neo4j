@@ -55,38 +55,65 @@ class JkgenCompare:
         for sab in self.sabs:
             self._compare_jkgen_to_neo4j(sab=sab)
 
-    def _compare_edges(self, jkgen_sab_path: Path):
+    def _compare_edges(self, jkgen_sab_path: Path, sab:str):
         """
         Compares the edges in a JKGEN edge file against the JKG neo4j.
         :param jkgen_sab_path: path to SAB's JKGEN edge file.
         """
-        self.clog.logger.debug(f'Loading edge file in {jkgen_sab_path}...')
+        self.clog.print_and_logger_info(f'Loading edge file in {jkgen_sab_path}...')
         edgefile = os.path.join(jkgen_sab_path,'jkg_edge.tsv')
         dfedge = pd.read_csv(edgefile,sep='\t')
 
-        for index, row in tqdm.tqdm(dfedge.iterrows(), total=dfedge.shape[0]):
-            # Get JKGEN triplet.
-            subject = row['subject']
-            predicate = row['predicate']
-            object = row['object']
+        self.clog.print_and_logger_info(f'Loading node_cuis file in {jkgen_sab_path}...')
+        nodefile = os.path.join(jkgen_sab_path, 'node_concept_assignments.tsv')
+        dfnode = pd.read_csv(nodefile, sep='\t')
 
-            # Build Cypher query string.
-            querytxt = f"MATCH (t:Term)<-[r:CODE{{codeid:'{subject}',tty:'PT'}}]-(c:Concept)-[r2:{predicate}]->(c2:Concept)-[r3:CODE {{tty:'PT',codeid:'{object}'}}]->(t2:Term) RETURN COUNT(*) AS count"
+        dfedgecui = dfedge.merge(
+            dfnode,
+            how='left',
+            left_on='subject',
+            right_on='node_id').rename(columns={'assigned_cui':'subject_cui'})
+        dfedgecui = dfedgecui[['subject','subject_cui','predicate','object']]
+        dfedgecui = dfedgecui.merge(
+            dfnode,
+            how='left',
+            left_on='object',
+            right_on='node_id').rename(columns={'assigned_cui':'object_cui'})
+        dfedgecui = dfedgecui[['subject','subject_cui','predicate','object','object_cui']]
+        outfile = os.path.join(jkgen_sab_path, 'jkg_edge_cui.tsv')
+        dfedgecui.to_csv(outfile, sep='\t', index=False)
 
-            with self.neo4japp.driver.session() as session:
-                result = session.run(querytxt)
-                count = result.single()["count"]
-                if count>0:
-                    in_ubkg = "Y"
-                else:
-                    in_ubkg = "N"
-                dfedge.loc[index, 'in_ubkg'] = in_ubkg
+        # Query the JKG.
+        self.clog.print_and_logger_info(f'Reading rels from JKG...')
+        querytxt = f"match (c:Concept)-[r {{sab:'{sab}'}}]->(c2:Concept) RETURN DISTINCT c.id AS subject_cui,type(r) AS predicate, c2.id AS object_cui"
 
-            outfile = os.path.join(jkgen_sab_path,'jkg_edge_comparison.tsv')
-            dfedge.to_csv(outfile,sep='\t',index=False)
+        listrels=[]
+        with self.neo4japp.driver.session() as session:
+            result = session.run(querytxt)
+            records = list(result)
+            for record in tqdm.tqdm(records, desc='Building DataFrame of rels', total=len(records)):
+                listrels.append({'subject_cui': record['subject_cui'], 'predicate': record['predicate'],
+                                 'object_cui': record['object_cui']})
+            dfjkgrels = pd.DataFrame(listrels)
 
+        self.clog.print_and_logger_info('Comparing edges...')
+        df_jkgen_edge_not_in_jkg = dfedgecui.merge(
+            dfjkgrels,
+            how='left_anti',
+            on=['subject_cui','predicate','object_cui']
+        )
+        outfile = os.path.join(jkgen_sab_path, 'jkgen_edge_not_in_jkg_rel.tsv')
+        df_jkgen_edge_not_in_jkg.to_csv(outfile, sep='\t', index=False)
 
-    def _compare_nodes(self, jkgen_sab_path: Path):
+        df_jkg_rel_not_in_jkgen_edge = dfjkgrels.merge(
+            dfedgecui,
+            how='left_anti',
+            on=['subject_cui', 'predicate', 'object_cui']
+        )
+        outfile = os.path.join(jkgen_sab_path, 'jkg_rel_not_in_jkgen_edge.tsv')
+        df_jkg_rel_not_in_jkgen_edge.to_csv(outfile, sep='\t', index=False)
+
+    def _compare_nodes(self, jkgen_sab_path: Path, sab: str):
         """
         Compares the nodes in a JKGEN node file against the JKG neo4j.
         :param jkgen_sab_path: path to SAB's JKGEN node file.
@@ -95,30 +122,28 @@ class JkgenCompare:
         # The node_cuis.csv file aggregates cui assignments. Use this as
         # a proxy for the node file.
         self.clog.logger.debug(f'Loading node_cuis file in {jkgen_sab_path}...')
-        nodefile = os.path.join(jkgen_sab_path,'node_cuis.tsv')
-        dfnode = pd.read_csv(nodefile, sep='\t')
+        nodefile = os.path.join(jkgen_sab_path,'node_concept_assignments.tsv')
+        df_jkgen_node = pd.read_csv(nodefile, sep='\t')
 
-        for index, row in tqdm.tqdm(dfnode.iterrows(), total=dfnode.shape[0]):
+        self.clog.print_and_logger_info('Querying JKG for nodes information...')
+        # Build Cypher query string to obtain list of linked CUIs for each node from the SAB.
+        querytxt = f"MATCH (t:Term)<-[r:CODE{{sab:'{sab}'}}]-(c:Concept) RETURN r.codeid AS node_id, COLLECT(DISTINCT c.id) AS cuis"
 
-            # Get node id and set of cuis.
-            node_id = row['node_id']
-            jkgen_cuis = set(ast.literal_eval(row['cuis']))
+        listnodes = []
+        with self.neo4japp.driver.session() as session:
+            result = session.run(querytxt)
+            records = list(result)
+            for record in tqdm.tqdm(records, desc='Building DataFrame of nodes', total=len(records)):
+                listnodes.append({'node_id': record['node_id'], 'cuis': record['cuis']})
+            df_jkg_node = pd.DataFrame(listnodes)
+        df_node_compare = df_jkgen_node.merge(
+            df_jkg_node,
+            how='left',
+            on='node_id')
+        df_node_compare = df_node_compare[['node_id','cuis_x','cuis_y']]
 
-            # Build Cypher query string to obtain list of linked CUIs.
-            querytxt = f"MATCH (t:Term)<-[r:CODE{{codeid:'{node_id}'}}]-(c:Concept) RETURN DISTINCT c.id AS cui"
-            jkg_cuis = []
-            with self.neo4japp.driver.session() as session:
-                result = session.run(querytxt)
-                for record in result:
-                    jkg_cuis.append(record['cui'])
-                if jkgen_cuis == set(jkgen_cuis):
-                    in_ubkg = "Y"
-                else:
-                    in_ubkg = "N"
-                dfnode.loc[index, 'in_ubkg'] = in_ubkg
-
-            outfile = os.path.join(jkgen_sab_path,'jkg_node_comparison.tsv')
-            dfnode[['node_label','cuis','in_ubkg']].to_csv(outfile,sep='\t',index=False)
+        outfile = os.path.join(jkgen_sab_path, 'node_comparison.tsv')
+        df_node_compare.to_csv(outfile, sep='\t', index=False)
 
     def _compare_jkgen_to_neo4j(self, sab: str):
         """
@@ -137,9 +162,9 @@ class JkgenCompare:
         print('Path: ', jkgen_sab_path)
 
         # Compare edges in JKGEN edge file.
-        self._compare_edges(jkgen_sab_path=jkgen_sab_path)
+        self._compare_edges(jkgen_sab_path=jkgen_sab_path, sab=sab)
 
         # Compare nodes in JKGEN node file.
-        self._compare_nodes(jkgen_sab_path=jkgen_sab_path)
+        self._compare_nodes(jkgen_sab_path=jkgen_sab_path, sab=sab)
 
 
