@@ -96,6 +96,7 @@ class JkgenCompare:
                                  'object_cui': record['object_cui']})
             dfjkgrels = pd.DataFrame(listrels)
 
+
         self.clog.print_and_logger_info('Comparing edges...')
         df_jkgen_edge_not_in_jkg = dfedgecui.merge(
             dfjkgrels,
