@@ -81,7 +81,7 @@ class JkgenCompare:
             right_on='node_id').rename(columns={'assigned_cui':'object_cui'})
         dfedgecui = dfedgecui[['subject','subject_cui','predicate','object','object_cui']]
         outfile = os.path.join(jkgen_sab_path, 'jkg_edge_cui.tsv')
-        dfedgecui.to_csv(outfile, sep='\t', index=False)
+        #dfedgecui.to_csv(outfile, sep='\t', index=False)
 
         # Query the JKG.
         self.clog.print_and_logger_info(f'Reading rels from JKG...')
