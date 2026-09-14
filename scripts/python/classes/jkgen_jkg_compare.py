@@ -11,6 +11,7 @@ JKG Edde/Node (JkGEN) format.
 import os
 from pathlib import Path
 import ast
+import numpy as np
 
 
 # Common configuration
@@ -96,13 +97,29 @@ class JkgenCompare:
                                  'object_cui': record['object_cui']})
             dfjkgrels = pd.DataFrame(listrels)
 
+        if len(listrels) == 0:
+            print(f'No rels found for SAB {sab}')
+            exit(1)
 
         self.clog.print_and_logger_info('Comparing edges...')
-        df_jkgen_edge_not_in_jkg = dfedgecui.merge(
+        # 1. Perform a left join with the indicator flag enabled
+        df_merge = dfedgecui.merge(
             dfjkgrels,
-            how='left_anti',
-            on=['subject_cui','predicate','object_cui']
+            how='left',
+            on=['subject_cui', 'predicate', 'object_cui'],
+            indicator=True
         )
+
+        # 2. Filter for rows that are ONLY in the left dataframe (the anti-join)
+        df_jkgen_edge_not_in_jkg = df_merge[df_merge['_merge'] == 'left_only'].drop(columns=['_merge'])
+
+        #3. Identify self-referential edges.
+        df_jkgen_edge_not_in_jkg['reason'] = np.where(
+            df_jkgen_edge_not_in_jkg['subject_cui'] == df_jkgen_edge_not_in_jkg['object_cui'],
+            'self-referential edge',
+            ''
+        )
+
         outfile = os.path.join(jkgen_sab_path, 'jkgen_edge_not_in_jkg_rel.tsv')
         df_jkgen_edge_not_in_jkg.to_csv(outfile, sep='\t', index=False)
 
