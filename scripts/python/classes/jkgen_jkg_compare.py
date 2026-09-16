@@ -160,7 +160,13 @@ class JkgenCompare:
             on='node_id')
         df_node_compare = df_node_compare[['node_id','cuis_x','cuis_y']]
 
-        outfile = os.path.join(jkgen_sab_path, 'node_comparison.tsv')
+        """
+        Filter to cases in which a node in the edge file does not have a
+        corresponding node in the JKG JSON.
+        """
+        df_node_compare = [df_node_compare['cuis_y'].isnull()].copy()
+
+        outfile = os.path.join(jkgen_sab_path, 'edge_nodes_not_in_jkg.tsv')
         df_node_compare.to_csv(outfile, sep='\t', index=False)
 
     def _compare_jkgen_to_neo4j(self, sab: str):

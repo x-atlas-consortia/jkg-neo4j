@@ -287,12 +287,17 @@ Builds a Zip archive that contains the minimal set of files necessary to start a
 Compares the JKGEN source files for a specified SAB against corresponding nodes and 
 rels in a specified JKG instance of neo4j.
 ## Outputs
-### Edge comparisons
-These should both be empty.
-* **jkgen_edge_not_in_jkg_rel.tsv** - edges in the JKGEN edge file that do not have corresponding paths in the JKG
-* **jkg_rel_not_in_jkgen_edge.tsv** - assertions in the JKG that are not represented in the JKGEN edge file.
+
 ### Node comparisons
-* **node_comparison.tsv** - comparison of code to concept assignments between the node file and the corresponding JKG
+* **edge_nodes_not_in_jkg.tsv** - comparison of nodes in the JKGEN node file with CODE rels with codeids in the JKG.
+
+### Edge comparisons
+* **jkgen_edge_not_in_jkg_rel.tsv** - edges in the JKGEN edge file that do not have corresponding rels in the JKG.
+
+  Rows should only correspond to self-referential edges that were not ingested.
+
+
+* **jkg_rel_not_in_jkgen_edge.tsv** - assertions in the JKG that are not represented in the JKGEN edge file.
 
 ## Components
 * **compare_jkgen_jkg.sh**: Bash script
