@@ -81,8 +81,6 @@ class JkgenCompare:
             left_on='object',
             right_on='node_id').rename(columns={'assigned_cui':'object_cui'})
         dfedgecui = dfedgecui[['subject','subject_cui','predicate','object','object_cui']]
-        outfile = os.path.join(jkgen_sab_path, 'jkg_edge_cui.tsv')
-        #dfedgecui.to_csv(outfile, sep='\t', index=False)
 
         # Query the JKG.
         self.clog.print_and_logger_info(f'Reading rels from JKG...')
@@ -154,17 +152,20 @@ class JkgenCompare:
             for record in tqdm.tqdm(records, desc='Building DataFrame of nodes', total=len(records)):
                 listnodes.append({'node_id': record['node_id'], 'cuis': record['cuis']})
             df_jkg_node = pd.DataFrame(listnodes)
+
         df_node_compare = df_jkgen_node.merge(
             df_jkg_node,
             how='left',
             on='node_id')
-        df_node_compare = df_node_compare[['node_id','cuis_x','cuis_y']]
+
+
+
 
         """
         Filter to cases in which a node in the edge file does not have a
         corresponding node in the JKG JSON.
         """
-        df_node_compare = [df_node_compare['cuis_y'].isnull()].copy()
+        df_node_compare = df_node_compare[df_node_compare['cuis_y'].isnull()].copy()
 
         outfile = os.path.join(jkgen_sab_path, 'edge_nodes_not_in_jkg.tsv')
         df_node_compare.to_csv(outfile, sep='\t', index=False)
