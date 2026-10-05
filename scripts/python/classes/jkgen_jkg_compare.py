@@ -158,14 +158,19 @@ class JkgenCompare:
             how='left',
             on='node_id')
 
-
-
-
         """
         Filter to cases in which a node in the edge file does not have a
-        corresponding node in the JKG JSON.
+        corresponding node in the JKG JSON. 
+        
+        The most likely reason for this is that the node was a UMLS CUI.
         """
         df_node_compare = df_node_compare[df_node_compare['cuis_y'].isnull()].copy()
+
+        df_node_compare['likely reason'] = np.where(
+            df_node_compare['node_id'].str.contains('UMLS'),
+            'node is UMLS CUI',
+            ''
+        )
 
         outfile = os.path.join(jkgen_sab_path, 'edge_nodes_not_in_jkg.tsv')
         df_node_compare.to_csv(outfile, sep='\t', index=False)
