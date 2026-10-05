@@ -289,7 +289,9 @@ rels in a specified JKG instance of neo4j.
 ## Outputs
 
 ### Node comparisons
-* **edge_nodes_not_in_jkg.tsv** - comparison of nodes in the JKGEN node file with CODE rels with codeids in the JKG.
+* **edge_nodes_not_in_jkg.tsv** - comparison of nodes in the JKGEN node file with CODE rels with codeids in the JKG. 
+
+  Rows should only correspond to cases in which nodes were UMLS CUIs.
 
 ### Edge comparisons
 * **jkgen_edge_not_in_jkg_rel.tsv** - edges in the JKGEN edge file that do not have corresponding rels in the JKG.
