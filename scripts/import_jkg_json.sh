@@ -60,7 +60,7 @@ heap_import="1.003g"
 # JKG JSON import defaults
 log_dir="./python/log"
 log_file="import_jkg_json.log"
-jkg_json_dir="./json"
+jkg_json_dir="./json/batch"
 jkg_json_file="jkg.json"
 
 
@@ -146,7 +146,10 @@ IMPORT="$NEO4J"/import
 # bind mount to an non-empty directory, the bind mount will obscure the bound directory's existing content--i.e., it will not
 # recognize it. To work around this, copy files to the bind mount after it is created.
 echo "Copying JKG JSON files to $import_dir"
-cp -rp "$jkg_json_dir" "$import_dir"
+jkg_json_base="$(basename "$jkg_json_dir")"
+mkdir -p "$import_dir/$jkg_json_base"
+cp -rp "$jkg_json_dir/batch" "$import_dir/$jkg_json_base/"
+
 
 # Delete the specified JKG database from the external bind mount, if it exists.
 echo "Dropping existing ontology database files from external bind mount."

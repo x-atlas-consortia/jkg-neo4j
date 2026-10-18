@@ -63,11 +63,11 @@ class JkgenCompare:
         """
         self.clog.print_and_logger_info(f'Loading edge file in {jkgen_sab_path}...')
         edgefile = os.path.join(jkgen_sab_path,'jkg_edge.tsv')
-        dfedge = pd.read_csv(edgefile,sep='\t')
+        dfedge = pd.read_csv(edgefile,sep='\t', dtype=str)
 
         self.clog.print_and_logger_info(f'Loading node_cuis file in {jkgen_sab_path}...')
         nodefile = os.path.join(jkgen_sab_path, 'node_concept_assignments.tsv')
-        dfnode = pd.read_csv(nodefile, sep='\t')
+        dfnode = pd.read_csv(nodefile, sep='\t', dtype=str)
 
         dfedgecui = dfedge.merge(
             dfnode,
@@ -139,7 +139,7 @@ class JkgenCompare:
         # a proxy for the node file.
         self.clog.logger.debug(f'Loading node_cuis file in {jkgen_sab_path}...')
         nodefile = os.path.join(jkgen_sab_path,'node_concept_assignments.tsv')
-        df_jkgen_node = pd.read_csv(nodefile, sep='\t')
+        df_jkgen_node = pd.read_csv(nodefile, sep='\t', dtype=str)
 
         self.clog.print_and_logger_info('Querying JKG for nodes information...')
         # Build Cypher query string to obtain list of linked CUIs for each node from the SAB.

@@ -25,6 +25,21 @@
 // (and avoid Out of Memory Errors from table scans), build a dynamic Cypher
 // that uses UNION.
 
+// Parameter values:
+// 1. batchSize: controls size of commit chunks. Tradeoff:
+//    - small size (<500) : lowers risk of mid-commit failure; lower memory pressure;
+//      increased overhead; increased processing time
+//    - large size (>1000): increaes risk of OOME; reduced processing time
+// 2. parallel: set to false to process sequentially to reduce issues such as lock conflicts
+// 3. iterate: important
+//    - true (default): fully materializes the
+//      (apoc.load.json + UNWIND value.rels result) set in heap before
+//      any batching/committing occurs. This has shown to fail once the set
+//      of imported files becomes large.
+//    - false: forces APOC to stream through the driver query in
+//      chunks of batchSize instead of materializing everything up front.
+//  4. file: (batch-created) JSON file to import
+
 CALL apoc.periodic.iterate(
     'CALL apoc.load.json($file) YIELD value
      UNWIND value.rels AS r
@@ -43,7 +58,7 @@ CALL apoc.periodic.iterate(
      ) YIELD value AS endRow
      CALL apoc.create.relationship(startRow.n, r.label, r.properties, endRow.n) YIELD rel
      RETURN rel',
-    {batchSize: 1000, parallel: false, params: {file: $file}}
+    {batchSize: 1000, parallel: false, params: {file: $file}, iterateList: true}
 )
 YIELD batches, total, committedOperations, failedOperations, errorMessages
 RETURN batches, total, committedOperations, failedOperations, errorMessages

@@ -15,10 +15,25 @@
 
 // Action query (CALL apoc.create.node...:
 // Creates a node in neo4j using the streamed array element.
+
+// Parameter values:
+// 1. batchSize: controls size of commit chunks. Tradeoff:
+//    - small size (<500) : lowers risk of mid-commit failure; lower memory pressure;
+//      increased overhead; increased processing time
+//    - large size (>1000): increaes risk of OOME; reduced processing time
+// 2. parallel: set to false to process sequentially to reduce issues such as lock conflicts
+// 3. iterate: important
+//    - true (default): fully materializes the
+//      (apoc.load.json + UNWIND value.rels result) set in heap before
+//      any batching/committing occurs. This has shown to fail once the set
+//      of imported files becomes large.
+//    - false: forces APOC to stream through the driver query in
+//      chunks of batchSize instead of materializing everything up front.
+//  4. file: (batch-created) JSON file to import
 CALL apoc.periodic.iterate(
     'CALL apoc.load.json($file) YIELD value UNWIND value.nodes AS n RETURN n',
     'CALL apoc.create.node(n.labels, n.properties) YIELD node RETURN node',
-    {batchSize: 1000, parallel: false, params: {file: $file}}
+    {batchSize: 1000, parallel: false, params: {file: $file}, iterateList: true}
 )
 YIELD batches, total, committedOperations
 RETURN batches, total, committedOperations
