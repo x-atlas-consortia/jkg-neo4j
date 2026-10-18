@@ -47,6 +47,10 @@ For example, the file `JKG_Batch_node_0009.JSON` identifies the
 The number of objects in an array of a batch file will be up to the batch size specified in the common
 **container.cfg** file.
 
+## Memory considerations
+The size of batch file affects the memory utilization of the import process used in the **import_jkg_json** script. 
+Refer to [Memory considerations for large JKG JSON](#memory-considerations-for-large-jkg-json).
+
 ---
 
 # validate_jkg_json
@@ -240,6 +244,31 @@ _import_url_base_ in **container.cfg** should be _file:///usr/src/app/neo4j/impo
    * validated against the JKG Schema
    * batch distributed
 2. The **build_container** and **export_bind_mount** scripts have been run to build a Docker neo4j host with external volumes.
+
+## Memory considerations for large JKG JSON
+When the JKG JSON is large (such as for Data Distillery, for which the JKG JSON is over 30 GB), the import can fail with OOME errors. 
+This is most likely to happen when importing CODE rels. 
+
+It is possible to reduce memory pressure during import to avoid OOME errors. Two known methods are:
+1. When batching the JKG JSON with the **batch_jkg_json** script, reduce the batch size, or the number of objects per JSON file. For example, the batch size for the 2026 AA Data Distillery distribution was reduced from 1M to 500 K.
+2. In the _import* cyphers, change the value of the _iterateList_ parameter in the call to _apoc.periodic.iterate_.
+
+It is necessary to consider the tradeoffs associated with these measures. In particular,
+1. Batch size
+   * Larger batch sizes can import more quickly, but risk OOME errors.
+   * Smaller batch sizes reduce the risk of OOME, but result in increased file overhead because of the number of batch files created.
+2. The _iterateList_ parameter determines whether _apoc.periodic.iterate_ materializes its query before committing. 
+   * True (the default) materializes the results of the query entirely before committing. It results in faster throughput, but increases the risk of OOME for large sets of files.
+   * False forces APOC to stream through the query in chunks of _batchSize_ instead of materializing the entire query result. (_batchSize_ in the APOC call is not the same as the batch size used by **batch_jkg_json**. Streaming commits reduces the risk of OOME at the expense of significant increases in processing time.
+3. It is possible to change the value of the _batchSize_ parameter in the _apoc.periodic.iterate_ call; however, this has not proven to be effective in addressing memory problems.
+
+Recommendations for JKG JSON batching size and _iterateList_:
+
+| Size of JKG JSON          | JKG JSON batch size | _iterateList_                                                    | comment                                                                     |
+|---------------------------|---------------------|------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| small (less than ~ 30 GB) | 1000000             | true (default)                                                   | This produces a relatively small number of batch files. Import time is low. |
+| large                     | 500000              | true for import_nodes and import_rels; false for import_coderels | Large number of batch files; longer generation time (~ 4 hours)             |
+
 
 ---
 
