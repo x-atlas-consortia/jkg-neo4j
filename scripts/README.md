@@ -253,15 +253,16 @@ It is possible to reduce memory pressure during import to avoid OOME errors. Two
 1. When batching the JKG JSON with the **batch_jkg_json** script, reduce the batch size, or the number of objects per JSON file. For example, the batch size for the 2026 AA Data Distillery distribution was reduced from 1M to 500 K.
 2. In the _import* cyphers, change the value of the _iterateList_ parameter in the call to _apoc.periodic.iterate_. 
 
-It is also possible to change the value of the _batchSize_ parameter in the _apoc.periodic.iterate_ call; however, this has not proven to be effective in addressing memory problems.
+It is also possible to change the value of the _batchSize_ parameter in the _apoc.periodic.iterate_ call.
+(The _batchSize_ parameter in the APOC call is not the same as the batch size used by the **batch_jkg_json** script.) Changing _batchSize_  has not proven to be effective in addressing memory problems.
 
 There are tradeoffs associated with these measures. In particular,
-1. Batch size
-   * Larger batch sizes can import more quickly, but risk OOME errors.
-   * Smaller batch sizes reduce the risk of OOME, but result in increased file overhead because of the number of batch files created.
+1. JKG JSON Batch file size
+   * Larger batch file sizes can import more quickly, but risk OOME errors.
+   * Smaller batch file sizes reduce the risk of OOME, but result in increased file overhead because of the number of batch files created.
 2. The _iterateList_ parameter determines whether _apoc.periodic.iterate_ materializes its query before committing. 
    * **True** (the default) materializes the results of the query entirely before committing. It results in faster throughput, but increases the risk of OOME for large sets of files.
-   * **False** forces APOC to stream through the query in chunks of _batchSize_ instead of materializing the entire query result. (_batchSize_ in the APOC call is not the same as the batch size used by **batch_jkg_json**.) Streaming commits reduces the risk of OOME at the expense of significant increases in processing time.
+   * **False** forces APOC to stream through the query in chunks of _batchSize_ instead of materializing the entire query result. Streaming commits reduces the risk of OOME at the expense of significant increases in processing time.
 
 
 Recommendations for JKG JSON batching size and _iterateList_:
