@@ -261,7 +261,7 @@ There are tradeoffs associated with these measures. In particular,
    * Smaller batch sizes reduce the risk of OOME, but result in increased file overhead because of the number of batch files created.
 2. The _iterateList_ parameter determines whether _apoc.periodic.iterate_ materializes its query before committing. 
    * **True** (the default) materializes the results of the query entirely before committing. It results in faster throughput, but increases the risk of OOME for large sets of files.
-   * **False** forces APOC to stream through the query in chunks of _batchSize_ instead of materializing the entire query result. (_batchSize_ in the APOC call is not the same as the batch size used by **batch_jkg_json**. Streaming commits reduces the risk of OOME at the expense of significant increases in processing time.
+   * **False** forces APOC to stream through the query in chunks of _batchSize_ instead of materializing the entire query result. (_batchSize_ in the APOC call is not the same as the batch size used by **batch_jkg_json**.) Streaming commits reduces the risk of OOME at the expense of significant increases in processing time.
 
 
 Recommendations for JKG JSON batching size and _iterateList_:
