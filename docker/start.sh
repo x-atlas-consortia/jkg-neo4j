@@ -100,8 +100,6 @@ NC='\033[0m' # No Color
 echo -e "${RED}***Restarting neo4j server..."
 echo -e "***Wait for the \"Started\" message ${NC}"
 
-# Start Neo4j in background
-$NEO4J/bin/neo4j start
+# Start Neo4j in the foreground so it becomes PID 1 and receives Docker's stop signal directly.
+exec $NEO4J/bin/neo4j console
 
-# Keep container alive and stream logs
-tail -f $NEO4J/logs/neo4j.log

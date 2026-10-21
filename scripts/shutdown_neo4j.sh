@@ -87,12 +87,19 @@ echo " - Docker container: $container_name"
 # Neo4j binary directory.
 NEO4J=/usr/src/app/neo4j/bin
 
-# Stop the neo4j database
-docker exec "$container_name" \
-bash -c "./neo4j stop"
+# Stop the neo4j database by stopping the container directly.
+shutdown_timeout=300
+echo " - shutdown_timeout: $shutdown_timeout seconds"
+docker stop -t "$shutdown_timeout" "$container_name"
 
-echo "Exit Code:"
-docker inspect "$container_name" --format={{.State.ExitCode}}
+# Wait until all transactions/checkpoints have been completed.
+while [ "$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)" == "true" ]; do
+  sleep 2
+  echo "Waiting for container $container_name to stop..."
+done
+
+echo "Container $container_name shut down complete."
+
 
 
 

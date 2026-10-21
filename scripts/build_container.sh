@@ -38,7 +38,7 @@ config_file="container.cfg"
 # Name of the Docker container.
 container_name="jkg-neo4j"
 # Tag for the docker container.
-docker_tag="neo-5.15.0-ALPHA3"
+docker_tag="latest"
 
 neo4j_user="neo4j"
 neo4j_password=""
