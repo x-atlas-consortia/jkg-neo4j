@@ -1,9 +1,8 @@
 #!/bin/bash
 # -------------------------
 # JSON Knowledge Graph (JBKG)
-# Shuts down the JKG neo4j instance, waiting until all processes are complete.
+# Shuts down the JKG neo4j instance, waiting until all transactions are complete.
 #
-
 
 ###########
 # Help function
@@ -78,7 +77,6 @@ then
   exit 1;
 fi
 
-
 echo ""
 echo "**********************************************************************"
 echo "Shutting down neo4j server"
@@ -87,19 +85,51 @@ echo " - Docker container: $container_name"
 # Neo4j binary directory.
 NEO4J=/usr/src/app/neo4j/bin
 
-# Stop the neo4j database by stopping the container directly.
-shutdown_timeout=300
-echo " - shutdown_timeout: $shutdown_timeout seconds"
-docker stop -t "$shutdown_timeout" "$container_name"
+# Set the shutdown timeout to 5 minutes.
+echo "Stopping container $container_name..."
+docker stop -t 300 "$container_name"
 
-# Wait until all transactions/checkpoints have been completed.
 while [ "$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)" == "true" ]; do
   sleep 2
-  echo "Waiting for container $container_name to stop..."
+  echo "Still waiting for container $container_name to stop..."
 done
+echo "Container $container_name has stopped."
 
-echo "Container $container_name shut down complete."
+##############################
+# VERIFY CLEAN SHUTDOWN — run all checks before declaring success.
+all_checks_passed=true
 
+echo "Verifying clean shutdown and checkpoint in debug.log..."
+debug_log="$base_dir/logs/debug.log"
+if [ ! -f "$debug_log" ]; then
+  echo "WARNING: debug.log not found at $debug_log."
+  all_checks_passed=false
+else
+  shutdown_confirmation=$(tail -200 "$debug_log" | grep -iE "checkpoint (completed|triggered)|Stopped\.")
+  if [ -z "$shutdown_confirmation" ]; then
+    echo "WARNING: No checkpoint/clean-stop confirmation found in debug.log."
+    all_checks_passed=false
+  else
+    echo "Confirmed shutdown/checkpoint evidence:"
+    echo "$shutdown_confirmation"
+  fi
+fi
 
+echo "Checking for stale store_lock file on host bind mount..."
+store_lock="$db_mount_dir/databases/neo4j/store_lock"
+if [ -f "$store_lock" ]; then
+  echo "WARNING: store_lock file still present at $store_lock — process may not have exited cleanly."
+  all_checks_passed=false
+else
+  echo "No store_lock file present."
+fi
 
+##############################
+# FINAL VERDICT.
+if [ "$all_checks_passed" == "true" ]; then
+  echo "All checks passed. Safe to zip the data directory at $db_mount_dir."
+else
+  echo "One or more checks failed. Do NOT trust the store as zip-safe without manual inspection."
+  exit 1
+fi
 

@@ -76,16 +76,34 @@ then
 fi
 
 
-echo ""
-echo "**********************************************************************"
-echo "Shutting down neo4j and stopping container $container_name"
+#echo ""
+#echo "**********************************************************************"
+#echo "Shutting down neo4j and stopping container $container_name"
 # Stopping the container shuts down the neo4j server so that the data in the external bind mount is stable prior
 # to copying.
 # Piping with true results in success even if the container is not running.
 # Stop the neo4j database
-docker exec "$container_name" \
-bash -c "./neo4j stop"
-docker stop "$container_name" || true
+#docker exec "$container_name" \
+#bash -c "./neo4j stop"
+#docker stop "$container_name" || true
+
+echo ""
+echo "**********************************************************************"
+echo "Verifying that container $container_name is stopped before zipping..."
+
+# Safety check only — no shutdown is performed here.
+# This assumes shutdown_neo4j.sh (or equivalent) was already run and verified.
+container_state="$(docker inspect -f '{{.State.Running}}' "$container_name" 2>/dev/null)"
+
+if [ "$container_state" == "true" ]; then
+  echo "ERROR: Container $container_name is still running."
+  echo "Run shutdown_neo4j.sh first and confirm a clean, verified shutdown before building the distribution zip."
+  exit 1
+elif [ -z "$container_state" ]; then
+  echo "Note: container $container_name was not found (already removed or never created). Proceeding, assuming the data directory is otherwise stable."
+else
+  echo "Confirmed: container $container_name is stopped."
+fi
 
 # A distribution consists of:
 # 1. An external bind mount database.
